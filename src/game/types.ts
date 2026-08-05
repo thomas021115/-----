@@ -13,6 +13,15 @@ export interface DuckUiBridge {
   pages: string[];
 }
 
+export interface DuckThreePreviewDebug {
+  ready: boolean;
+  renderer: string;
+  revision: string;
+  objectCount: number;
+  frameCount: number;
+  reason?: string;
+}
+
 export interface ItemDefinition {
   name: string;
   icon: string;
@@ -38,5 +47,6 @@ export interface MapDefinition {
 declare global {
   interface Window {
     __duckUi: DuckUiBridge;
+    __duckThreePreview: DuckThreePreviewDebug;
   }
 }

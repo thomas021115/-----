@@ -20,6 +20,10 @@ app.commandLine.appendSwitch('disable-default-apps');
 app.commandLine.appendSwitch('disable-domain-reliability');
 app.commandLine.appendSwitch('disable-sync');
 app.commandLine.appendSwitch('no-pings');
+if (smokeTest) {
+  app.commandLine.appendSwitch('use-angle', 'swiftshader');
+  app.commandLine.appendSwitch('enable-unsafe-swiftshader');
+}
 app.commandLine.appendSwitch(
   'disable-features',
   'AutofillServerCommunication,MediaRouter,NetworkTimeServiceQuerying,OptimizationHints'
@@ -136,6 +140,8 @@ function createWindow() {
           return {
             title: document.title,
             canvas: !!document.getElementById('game'),
+            threePreviewCanvas: !!document.querySelector('#threePreview canvas'),
+            threePreview: window.__duckThreePreview ? { ...window.__duckThreePreview } : null,
             startButton: !!document.getElementById('startRaidBtn'),
             difficultyCards: document.querySelectorAll('[data-difficulty]').length,
             debugApi: typeof window.__duckDebug === 'object',
@@ -146,6 +152,10 @@ function createWindow() {
         })()`);
         const pass = result.title === 'SELFTEST PASS'
           && result.canvas
+          && result.threePreviewCanvas
+          && result.threePreview?.ready === true
+          && result.threePreview?.objectCount >= 80
+          && result.threePreview?.frameCount >= 1
           && result.startButton
           && result.difficultyCards === 4
           && result.debugApi

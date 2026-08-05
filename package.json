@@ -25,6 +25,7 @@
     "build": "tsc --noEmit && node scripts/prepare-html-release.mjs"
   },
   "devDependencies": {
+    "@types/three": "0.185.1",
     "@vitejs/plugin-vue": "6.0.8",
     "electron": "43.3.0",
     "electron-builder": "26.15.3",
@@ -71,6 +72,7 @@
     "publish": null
   },
   "dependencies": {
+    "three": "0.185.1",
     "vue": "3.5.40",
     "vue-router": "4.6.4"
   }
