@@ -1,0 +1,13 @@
+packages:
+  - .
+
+allowBuilds:
+  electron-winstaller: false
+
+minimumReleaseAgeExclude:
+  - electron@43.3.0
+
+onlyBuiltDependencies:
+  - electron
+
+verifyDepsBeforeRun: false

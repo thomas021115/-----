@@ -1,0 +1,34 @@
+# Dependencies and package-manager caches
+/node_modules/
+/.pnpm-store/
+
+# Generated releases and build output
+/release/
+/dist/
+/coverage/
+/.vite/
+*.exe
+*.blockmap
+*.zip
+*.7z
+
+# Local tools and temporary files
+/.tools/
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Local environment and editor settings
+.env
+.env.*
+!.env.example
+/.vscode/
+/.idea/
+*.code-workspace
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini

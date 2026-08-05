@@ -1,0 +1,65 @@
+{
+  "name": "duck-town-extraction-offline",
+  "version": "7.0.0",
+  "private": true,
+  "description": "鴨鎮撤離行動：完全離線的單人撤離搜刮遊戲",
+  "author": "Internal Offline Build",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22.20.0",
+    "pnpm": "11.20.0"
+  },
+  "scripts": {
+    "start": "node scripts/run-electron.mjs",
+    "smoke": "node scripts/run-electron.mjs --smoke-test",
+    "verify": "node scripts/verify-offline.mjs",
+    "release:html": "node scripts/prepare-html-release.mjs",
+    "verify:release": "node scripts/verify-release.mjs",
+    "build:win": "node scripts/build-windows.mjs",
+    "build": "node scripts/build-windows.mjs"
+  },
+  "devDependencies": {
+    "electron": "43.3.0",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "tw.ducktown.extraction.offline",
+    "productName": "鴨鎮撤離行動",
+    "asar": true,
+    "compression": "maximum",
+    "npmRebuild": false,
+    "nodeGypRebuild": false,
+    "electronLanguages": [
+      "zh-TW",
+      "en-US"
+    ],
+    "directories": {
+      "output": "release/exe",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "src/game/index.html",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "duck-town-extraction-v${version}-portable.${ext}",
+      "executableName": "DuckTownExtraction",
+      "verifyUpdateCodeSignature": false
+    },
+    "portable": {
+      "artifactName": "duck-town-extraction-v${version}-portable.${ext}"
+    },
+    "publish": null
+  }
+}

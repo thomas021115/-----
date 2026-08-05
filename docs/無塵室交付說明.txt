@@ -1,0 +1,25 @@
+鴨鎮撤離行動－無塵室交付說明
+
+建議模式：Windows 可攜式 EXE
+檔案：release\exe\duck-town-extraction-v7.0.0-portable.exe
+校驗：release\exe\SHA256SUMS.txt
+
+- 不需要安裝。
+- 不需要系統管理員權限。
+- 不需要 VS Code、Node.js、pnpm 或網路。
+- 雙擊 EXE 即可啟動。
+- F11 可切換全螢幕。
+- 遊戲存檔位於使用者的 Windows AppData，由 Electron 的 LocalStorage 管理。
+
+備援模式：單一 HTML
+資料夾：release\html
+
+- 直接雙擊 duck-game.html。
+- 使用公司已安裝的 Edge 或 Chrome。
+- 不可只帶 README 或 SHA256SUMS，必須帶 duck-game.html。
+
+注意：
+1. EXE 不等於把 HTML 編譯成原生遊戲；成品內含 Electron／Chromium 執行環境。
+2. 未經公司簽章的 EXE 可能被 SmartScreen 或端點防護阻擋。
+3. 正式帶入前須在一台未安裝 Node.js 的測試電腦斷網驗收。
+4. 不要把 node_modules、src、electron 或 scripts 帶入無塵室。
