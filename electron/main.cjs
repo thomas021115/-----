@@ -147,7 +147,7 @@ function createWindow() {
         const pass = result.title === 'SELFTEST PASS'
           && result.canvas
           && result.startButton
-          && result.difficultyCards === 3
+          && result.difficultyCards === 4
           && result.debugApi
           && result.bodyText > 100
           && result.selftest?.pass === true

@@ -1,0 +1,49 @@
+import type { MapDefinition } from '../types';
+
+export const maps: MapDefinition[] = [
+  {
+    id:'depot',name:'灰港谷地',subtitle:'西側工業園區、中央水庫與東側住宅聚落',thumbClass:'map1',
+    palette:{ground:'#485f50',wall:'#29332f',top:'#68736e',grid:'rgba(230,244,233,.035)',patch:'rgba(42,58,49,.18)',road:'rgba(41,43,40,.58)',tree1:'#203e29',tree2:'#365e3e',minimap:'#60796b',floor:'#58685f',water:'#234f5e'},
+    world:{w:16400,h:10800},spawn:{x:620,y:9250},extraction:{x:15150,y:650,w:720,h:900},
+    roads:[{x:0,y:4850,w:16400,h:520},{x:5000,y:0,w:580,h:10800},{x:10000,y:0,w:520,h:10800},{x:0,y:8350,w:16400,h:420}],
+    waterZones:[{x:8100,y:4000,rx:1550,ry:1900},{x:7650,y:6450,rx:900,ry:680}],
+    buildingSpecs:[
+      {x:1050,y:1050,w:1350,h:900,door:'bottom',chest:true},{x:2850,y:1250,w:1200,h:820,door:'right',chest:true},{x:1100,y:3050,w:1450,h:900,door:'right',chest:true},{x:3150,y:3200,w:1300,h:820,door:'bottom',chest:true},{x:1300,y:6550,w:1250,h:850,door:'right',chest:true},{x:3300,y:6800,w:1350,h:850,door:'top',chest:true},
+      {x:11200,y:1050,w:1000,h:720,door:'bottom'},{x:12850,y:1150,w:920,h:680,door:'left'},{x:14400,y:1700,w:950,h:720,door:'bottom'},{x:11150,y:3000,w:900,h:680,door:'right'},{x:12800,y:3100,w:1050,h:740,door:'bottom'},{x:14350,y:3600,w:900,h:680,door:'left'},{x:11000,y:6100,w:1000,h:700,door:'right'},{x:12650,y:6500,w:920,h:680,door:'top'},{x:14200,y:6900,w:1050,h:760,door:'left'},
+      {x:5600,y:850,w:1050,h:760,door:'bottom',locked:'depotOfficeKey',roomName:'行政樓檔案室'},
+      {x:6900,y:7850,w:1100,h:780,door:'top',locked:'depotVaultKey',roomName:'地下金庫'},
+      {x:10350,y:8350,w:1050,h:760,door:'top',locked:'depotWorkshopKey',roomName:'維修間'},
+      {x:13700,y:5200,w:1100,h:780,door:'left',locked:'depotControlKey',roomName:'中央控制室'}
+    ]
+  },
+  {
+    id:'wetland',name:'白楊濕地',subtitle:'研究園區、河道、農場與分散村落',thumbClass:'map2',
+    palette:{ground:'#3d6863',wall:'#26393b',top:'#5b7a78',grid:'rgba(225,248,245,.035)',patch:'rgba(53,91,82,.16)',road:'rgba(43,58,57,.52)',tree1:'#19463a',tree2:'#347567',minimap:'#668f88',floor:'#526e6c',water:'#174b59'},
+    world:{w:16400,h:10800},spawn:{x:620,y:700},extraction:{x:14900,y:9100,w:850,h:900},
+    roads:[{x:0,y:2500,w:16400,h:420},{x:0,y:7450,w:16400,h:460},{x:4300,y:0,w:500,h:10800},{x:12100,y:0,w:520,h:10800}],
+    waterZones:[{x:8200,y:5200,rx:1350,ry:3100},{x:6900,y:9100,rx:1700,ry:650}],
+    buildingSpecs:[
+      {x:1050,y:900,w:1200,h:800,door:'right',chest:true},{x:2600,y:1050,w:1100,h:760,door:'bottom',chest:true},{x:1050,y:3750,w:1300,h:850,door:'right',chest:true},{x:2750,y:3950,w:1050,h:740,door:'top',chest:true},{x:12850,y:4100,w:1100,h:760,door:'left',chest:true},{x:14300,y:4250,w:1000,h:740,door:'bottom',chest:true},
+      {x:900,y:7900,w:1050,h:720,door:'right'},{x:2350,y:8150,w:950,h:680,door:'top'},{x:3500,y:8750,w:1000,h:720,door:'left'},{x:12900,y:900,w:1000,h:720,door:'bottom'},{x:14400,y:1200,w:900,h:680,door:'left'},{x:10200,y:2050,w:950,h:680,door:'right'},{x:10400,y:8500,w:1050,h:740,door:'top'},
+      {x:5200,y:850,w:1050,h:760,door:'bottom',locked:'wetlandLabKey',roomName:'生物實驗室'},
+      {x:10150,y:950,w:1000,h:740,door:'bottom',locked:'wetlandArchiveKey',roomName:'研究檔案室'},
+      {x:5300,y:6450,w:1050,h:760,door:'top',locked:'wetlandPumpKey',roomName:'抽水站控制室'},
+      {x:13000,y:6500,w:1100,h:780,door:'left',locked:'wetlandBunkerKey',roomName:'防疫地堡'}
+    ]
+  },
+  {
+    id:'port',name:'黑潮海岸',subtitle:'貨櫃碼頭、海關區、漁村與海岸林地',thumbClass:'map3',
+    palette:{ground:'#2d4260',wall:'#1c2739',top:'#53698c',grid:'rgba(229,235,255,.035)',patch:'rgba(41,58,88,.18)',road:'rgba(16,25,39,.62)',tree1:'#1b3049',tree2:'#315378',minimap:'#5a7197',floor:'#465a75',water:'#112c49'},
+    world:{w:16400,h:10800},spawn:{x:600,y:5400},extraction:{x:15150,y:700,w:720,h:900},
+    roads:[{x:0,y:4650,w:16400,h:520},{x:0,y:8000,w:16400,h:420},{x:5200,y:0,w:560,h:10800},{x:11100,y:0,w:520,h:10800}],
+    waterZones:[{x:8300,y:1450,rx:3000,ry:900},{x:8600,y:9900,rx:3600,ry:720}],
+    buildingSpecs:[
+      {x:1050,y:1050,w:1500,h:850,door:'right',chest:true},{x:3000,y:1150,w:1350,h:820,door:'bottom',chest:true},{x:950,y:3000,w:1400,h:820,door:'right',chest:true},{x:2850,y:3150,w:1350,h:800,door:'top',chest:true},{x:1250,y:6500,w:1300,h:820,door:'right',chest:true},{x:3100,y:6650,w:1200,h:780,door:'top',chest:true},
+      {x:12100,y:1300,w:1050,h:720,door:'bottom'},{x:13600,y:1500,w:950,h:680,door:'left'},{x:14800,y:2300,w:900,h:650,door:'bottom'},{x:12100,y:3500,w:980,h:700,door:'right'},{x:13700,y:3650,w:1050,h:720,door:'bottom'},{x:11900,y:6600,w:1050,h:720,door:'right'},{x:13600,y:7000,w:950,h:680,door:'top'},{x:14900,y:6200,w:900,h:660,door:'left'},
+      {x:5900,y:850,w:1050,h:760,door:'bottom',locked:'portCustomsKey',roomName:'海關查驗室'},
+      {x:8500,y:3100,w:1100,h:780,door:'left',locked:'portArmoryKey',roomName:'軍械庫'},
+      {x:6300,y:7650,w:1050,h:760,door:'top',locked:'portOfficeKey',roomName:'船務辦公室'},
+      {x:10000,y:8000,w:1100,h:780,door:'top',locked:'portVaultKey',roomName:'港區保險庫'}
+    ]
+  }
+];

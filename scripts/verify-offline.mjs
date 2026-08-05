@@ -48,7 +48,13 @@ for (const match of html.matchAll(resourcePattern)) {
 
 const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
   .filter((match) => !/\bsrc=/i.test(match[1]) && match[2].trim());
-check(inlineScripts.length > 0, '找不到內嵌 JavaScript');
+const externalScripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*><\/script>/gi)]
+  .map((match) => match[1])
+  .filter((source) => !/^(?:[a-z]+:)?\/\//i.test(source) && !source.startsWith('data:'));
+check(
+  releaseArtifact ? inlineScripts.length > 0 : inlineScripts.length + externalScripts.length > 0,
+  releaseArtifact ? '找不到內嵌 JavaScript' : '找不到本機 JavaScript 或 TypeScript 入口'
+);
 for (const scriptMatch of inlineScripts) {
   try {
     new Function(scriptMatch[2]);
@@ -57,11 +63,31 @@ for (const scriptMatch of inlineScripts) {
   }
 }
 
-const ids = [...html.matchAll(/\bid="([^"]+)"/gi)].map((match) => match[1]);
+const sourceDirectory = path.dirname(htmlPath);
+function listSourceFiles(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const entryPath = path.join(directory, entry.name);
+    if (entry.isDirectory()) return listSourceFiles(entryPath);
+    return /\.(?:js|ts)$/i.test(entry.name) ? [entryPath] : [];
+  });
+}
+const sourceFiles = releaseArtifact
+  ? []
+  : listSourceFiles(sourceDirectory);
+for (const source of externalScripts) {
+  check(fs.existsSync(path.resolve(sourceDirectory, source)), `找不到本機程式：${source}`);
+}
+const sourceText = sourceFiles
+  .filter((file) => fs.existsSync(file))
+  .map((file) => fs.readFileSync(file, 'utf8'))
+  .join('\n');
+
+const sourceAndMarkup = `${html}\n${sourceText}`;
+const ids = [...sourceAndMarkup.matchAll(/\bid="([^"]+)"/gi)].map((match) => match[1]);
 const duplicateIds = ids.filter((id, index) => ids.indexOf(id) !== index);
 check(duplicateIds.length === 0, `重複 DOM ID：${[...new Set(duplicateIds)].join(', ')}`);
 
-const referencedIds = [...html.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)]
+const referencedIds = [...sourceAndMarkup.matchAll(/getElementById\(['"]([^'"]+)['"]\)/g)]
   .map((match) => match[1]);
 const missingIds = [...new Set(referencedIds)].filter((id) => !ids.includes(id));
 check(missingIds.length === 0, `缺少 DOM ID：${missingIds.join(', ')}`);
@@ -81,7 +107,8 @@ const result = {
   file: path.relative(root, htmlPath),
   bytes: Buffer.byteLength(html),
   domIds: ids.length,
-  scriptBytes: inlineScripts.reduce((sum, match) => sum + Buffer.byteLength(match[2]), 0),
+  scriptBytes: inlineScripts.reduce((sum, match) => sum + Buffer.byteLength(match[2]), 0)
+    + sourceFiles.reduce((sum, file) => sum + fs.statSync(file).size, 0),
   embeddedImageBytes,
   failures
 };

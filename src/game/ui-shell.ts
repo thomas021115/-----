@@ -1,5 +1,11 @@
 import { createApp, h } from 'vue';
-import { createRouter, createWebHashHistory, RouterLink } from 'vue-router';
+import {
+  createRouter,
+  createWebHashHistory,
+  RouterLink,
+  type RouteLocationNormalized
+} from 'vue-router';
+import type { LobbyPage } from './types';
 
 const pages = [
   { id: 'home', path: '/home', short: '總', label: '行動總覽' },
@@ -7,7 +13,7 @@ const pages = [
   { id: 'loadout', path: '/loadout', short: '裝', label: '戰前配置' },
   { id: 'stash', path: '/stash', short: '倉', label: '永久倉庫' },
   { id: 'shop', path: '/shop', short: '商', label: '物資商城' }
-];
+] satisfies readonly LobbyPage[];
 
 const EmptyPage = { render: () => null };
 const router = createRouter({
@@ -19,9 +25,9 @@ const router = createRouter({
   ]
 });
 
-function applyLobbyPage(route) {
-  const activePage = route.meta.page || 'home';
-  document.querySelectorAll('[data-lobby-page]').forEach((section) => {
+function applyLobbyPage(route: RouteLocationNormalized) {
+  const activePage = typeof route.meta.page === 'string' ? route.meta.page : 'home';
+  document.querySelectorAll<HTMLElement>('[data-lobby-page]').forEach((section) => {
     const active = section.dataset.lobbyPage === activePage;
     section.classList.toggle('lobbyPageHidden', !active);
     section.classList.toggle('lobbyPageActive', active);
@@ -75,7 +81,7 @@ router.isReady().then(() => {
 });
 
 window.__duckUi = {
-  go(path) {
+  go(path: string) {
     return router.push(path);
   },
   current() {
