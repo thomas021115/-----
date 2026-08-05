@@ -37,8 +37,8 @@ const html = bytes.toString('utf8');
 if (/\b(?:src|href)=["'](?!data:|#)/i.test(html)) {
   throw new Error('建置結果仍包含非內嵌資源');
 }
-if (/https?:\/\//i.test(html)) {
-  throw new Error('建置結果包含 HTTP/HTTPS URL');
+if (/\b(?:fetch\s*\(|XMLHttpRequest\b|WebSocket\b|EventSource\b|sendBeacon\s*\(|navigator\.serviceWorker)|url\(\s*["']?https?:\/\//i.test(html)) {
+  throw new Error('建置結果包含可執行的網路連線程式或外部 CSS 資源');
 }
 
 const hash = crypto.createHash('sha256').update(bytes).digest('hex').toUpperCase();

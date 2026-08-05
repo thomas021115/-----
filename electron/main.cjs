@@ -103,16 +103,43 @@ function createWindow() {
 
     win.webContents.once('did-finish-load', async () => {
       try {
-        const result = await win.webContents.executeJavaScript(`(() => {
+        const result = await win.webContents.executeJavaScript(`(async () => {
           const selftestText = document.getElementById('selftestResult')?.textContent || '';
           let selftest = null;
           try { selftest = JSON.parse(selftestText); } catch (_error) {}
+          let uiShell = null;
+          if (${releaseHtmlTest ? 'true' : 'false'} && window.__duckUi) {
+            const routeChecks = [];
+            for (const path of window.__duckUi.pages) {
+              await window.__duckUi.go(path);
+              await new Promise((resolve) => setTimeout(resolve, 20));
+              const expectedPage = path.slice(1);
+              const visiblePages = [...document.querySelectorAll('[data-lobby-page]')]
+                .filter((section) => !section.classList.contains('lobbyPageHidden'))
+                .map((section) => section.dataset.lobbyPage);
+              routeChecks.push({
+                path,
+                hash: location.hash,
+                visiblePages,
+                pass: location.hash === '#' + path
+                  && visiblePages.length > 0
+                  && visiblePages.every((page) => page === expectedPage)
+              });
+            }
+            uiShell = {
+              routeCount: document.querySelectorAll('[data-ui-route]').length,
+              routeChecks,
+              allRoutesPass: routeChecks.length === 5 && routeChecks.every((check) => check.pass)
+            };
+            await window.__duckUi.go('/home');
+          }
           return {
             title: document.title,
             canvas: !!document.getElementById('game'),
             startButton: !!document.getElementById('startRaidBtn'),
             difficultyCards: document.querySelectorAll('[data-difficulty]').length,
             debugApi: typeof window.__duckDebug === 'object',
+            uiShell,
             bodyText: document.body.innerText.length,
             selftest
           };
@@ -124,7 +151,11 @@ function createWindow() {
           && result.debugApi
           && result.bodyText > 100
           && result.selftest?.pass === true
-          && result.selftest?.maps?.length === 3;
+          && result.selftest?.maps?.length === 3
+          && (!releaseHtmlTest || (
+            result.uiShell?.routeCount === 5
+            && result.uiShell?.allRoutesPass === true
+          ));
         console.log(JSON.stringify({
           smoke: pass ? 'PASS' : 'FAIL',
           target: releaseHtmlTest ? 'release/html/duck-game.html' : 'src/game/index.html',

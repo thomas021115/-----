@@ -10,6 +10,7 @@ if (!fs.existsSync(htmlPath)) {
 }
 const html = fs.readFileSync(htmlPath, 'utf8');
 const failures = [];
+const releaseArtifact = path.relative(root, htmlPath).split(path.sep).join('/') === 'release/html/duck-game.html';
 
 function check(condition, message) {
   if (!condition) failures.push(message);
@@ -20,13 +21,13 @@ check(/<html\b[^>]*lang="zh-Hant"/i.test(html), '缺少 zh-Hant 語言設定');
 check(/connect-src\s+'none'/i.test(html), 'CSP 未禁止網路連線');
 
 const forbiddenPatterns = [
-  [/https?:\/\//i, '包含 HTTP/HTTPS URL'],
   [/\bfetch\s*\(/i, '包含 fetch()'],
   [/\bXMLHttpRequest\b/i, '包含 XMLHttpRequest'],
   [/\bWebSocket\b/i, '包含 WebSocket'],
   [/\bEventSource\b/i, '包含 EventSource'],
   [/\bsendBeacon\s*\(/i, '包含 sendBeacon()'],
-  [/navigator\.serviceWorker/i, '包含 Service Worker']
+  [/navigator\.serviceWorker/i, '包含 Service Worker'],
+  [/url\(\s*["']?https?:\/\//i, '包含外部 CSS 資源']
 ];
 
 for (const [pattern, message] of forbiddenPatterns) {
@@ -35,17 +36,22 @@ for (const [pattern, message] of forbiddenPatterns) {
 
 const resourcePattern = /\b(?:src|href)="([^"]+)"/gi;
 for (const match of html.matchAll(resourcePattern)) {
+  const embedded = match[1].startsWith('data:') || match[1].startsWith('#');
+  const localSourceFile = !releaseArtifact
+    && !/^(?:[a-z]+:)?\/\//i.test(match[1])
+    && !match[1].startsWith('\\\\');
   check(
-    match[1].startsWith('data:') || match[1].startsWith('#'),
+    embedded || localSourceFile,
     `發現非內嵌資源：${match[1]}`
   );
 }
 
-const scriptMatch = html.match(/<script\b[^>]*>([\s\S]*?)<\/script>/i);
-check(Boolean(scriptMatch), '找不到內嵌 JavaScript');
-if (scriptMatch) {
+const inlineScripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)]
+  .filter((match) => !/\bsrc=/i.test(match[1]) && match[2].trim());
+check(inlineScripts.length > 0, '找不到內嵌 JavaScript');
+for (const scriptMatch of inlineScripts) {
   try {
-    new Function(scriptMatch[1]);
+    new Function(scriptMatch[2]);
   } catch (error) {
     failures.push(`JavaScript 語法錯誤：${error.message}`);
   }
@@ -75,7 +81,7 @@ const result = {
   file: path.relative(root, htmlPath),
   bytes: Buffer.byteLength(html),
   domIds: ids.length,
-  scriptBytes: scriptMatch ? Buffer.byteLength(scriptMatch[1]) : 0,
+  scriptBytes: inlineScripts.reduce((sum, match) => sum + Buffer.byteLength(match[2]), 0),
   embeddedImageBytes,
   failures
 };

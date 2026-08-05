@@ -72,7 +72,17 @@ canvas{display:block;max-width:100%;max-height:100%;margin:auto;background:#3149
 .enemyLabel{font:bold 11px system-ui;text-align:center}
 #difficultyHud{margin-top:5px}.targetFound{color:var(--green);font-weight:900}
 .propLegend{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
-@media(max-width:900px){.difficultyGrid{grid-template-columns:1fr}.raidGearGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.objectiveCard{grid-template-columns:48px 1fr}.objectiveCard button{grid-column:1/-1}}
+.lobbyNavMount{position:sticky;top:-2px;z-index:15;padding:2px 0 10px;background:linear-gradient(#07100e 72%,transparent)}
+.lobbyNav{min-height:76px;padding:11px 14px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;background:rgba(9,17,14,.94);backdrop-filter:blur(16px);box-shadow:0 12px 38px rgba(0,0,0,.32)}
+.lobbyBrand{display:flex;align-items:center;gap:10px;min-width:188px}.lobbyBrandMark{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#f5d36d,#b98126);color:#151914;font-size:22px;font-weight:1000;box-shadow:inset 0 1px rgba(255,255,255,.45),0 8px 22px rgba(243,202,86,.18)}
+.lobbyBrandCopy b,.lobbyBrandCopy span{display:block}.lobbyBrandCopy b{font-size:15px;letter-spacing:.03em}.lobbyBrandCopy span{margin-top:2px;color:var(--muted);font-size:11px;letter-spacing:.12em}
+.lobbyTabs{display:flex;justify-content:center;gap:7px;min-width:0}.lobbyTab{display:flex;align-items:center;justify-content:center;gap:7px;min-height:48px;padding:8px 12px;border:1px solid transparent;border-radius:12px;color:#b8c9c1;text-decoration:none;font-size:13px;font-weight:900;white-space:nowrap;transition:background .16s,border-color .16s,color .16s,transform .16s}.lobbyTab:hover{background:#17251f;color:#fff;transform:translateY(-1px)}.lobbyTab.active{color:#fff4c9;background:linear-gradient(145deg,#2b352a,#202a23);border-color:#746538;box-shadow:inset 0 -2px rgba(243,202,86,.18)}
+.lobbyTabIcon{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;background:#24342d;border:1px solid #42584e;color:var(--yellow);font-size:12px}.lobbyTab.active .lobbyTabIcon{background:var(--yellow);border-color:#ffe59b;color:#172019}
+.offlineStatus{display:flex;align-items:center;gap:7px;padding:8px 10px;border:1px solid #30513d;border-radius:999px;color:#9ce5b0;background:#11261a;font:900 10px/1 system-ui;letter-spacing:.1em}.offlineStatus i{width:7px;height:7px;border-radius:50%;background:#6fea8c;box-shadow:0 0 10px #6fea8c}
+.lobbyPageHidden{display:none!important}.lobbyPageActive{animation:lobbyPageIn .22s ease-out both}@keyframes lobbyPageIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+@media(max-width:1120px){.lobbyNav{grid-template-columns:auto 1fr}.offlineStatus{display:none}.lobbyTabs{justify-content:flex-end}.lobbyTab{padding:8px}.lobbyTab>span:last-child{display:none}}
+@media(max-width:900px){.difficultyGrid{grid-template-columns:1fr}.raidGearGrid{grid-template-columns:repeat(2,minmax(0,1fr))}.objectiveCard{grid-template-columns:48px 1fr}.objectiveCard button{grid-column:1/-1}.lobbyNav{grid-template-columns:1fr;padding:10px}.lobbyBrand{display:none}.lobbyTabs{justify-content:stretch;gap:5px}.lobbyTab{flex:1;min-width:0}.lobbyTab>span:last-child{display:block;font-size:11px}.lobbyTabIcon{display:none}}
+@media(max-width:560px){.lobbyTab>span:last-child{display:none}.lobbyNavMount{top:0}.lobbyTabs{overflow-x:auto;justify-content:flex-start}.lobbyTab{flex:1 0 auto;padding:9px 11px}.lobbyTabIcon{display:grid}}
 
 </style>
 </head>
@@ -80,7 +90,8 @@ canvas{display:block;max-width:100%;max-height:100%;margin:auto;background:#3149
 <div id="app">
   <div id="lobbyScreen" class="screen">
     <div class="lobbyWrap">
-      <div class="heroGrid">
+      <div id="lobbyNavApp" class="lobbyNavMount"></div>
+      <div class="heroGrid" data-lobby-page="home">
         <div class="panel heroPanel">
           <span class="badge">離線撤離搜刮・永久倉庫・物品商城</span>
           <h1>鴨鎮撤離行動</h1>
@@ -107,32 +118,32 @@ canvas{display:block;max-width:100%;max-height:100%;margin:auto;background:#3149
         </div>
       </div>
 
-      <div class="panel sectionPanel">
+      <div class="panel sectionPanel" data-lobby-page="warzone">
         <div class="sectionHead"><div><h2>戰區難度</h2><p>難度決定入場裝備門檻、敵人強度、精英與 Boss 掉落，以及戰利品估值。</p></div><span class="badge">A／B／C</span></div>
         <div id="difficultyGrid" class="difficultyGrid"></div>
       </div>
 
-      <div class="panel sectionPanel">
+      <div class="panel sectionPanel" data-lobby-page="warzone">
         <div class="sectionHead"><div><h2>本次委託目標</h2><p>成功帶著指定物品撤離，可獲得撤離估值 10% 的現金加成。</p></div><span class="badge">入場前隨機</span></div>
         <div id="objectiveCard" class="objectiveCard"></div>
       </div>
 
-      <div class="panel sectionPanel">
+      <div class="panel sectionPanel" data-lobby-page="warzone">
         <div class="sectionHead"><div><h2>隨機地圖池</h2><p>每局自動抽選；聚落、工業區、林地、空曠區與道路掩體交錯配置。</p></div><span class="badge">三張地圖</span></div>
         <div id="mapGrid" class="mapGrid"></div>
       </div>
 
-      <div class="panel sectionPanel">
+      <div class="panel sectionPanel" data-lobby-page="loadout">
         <div class="sectionHead"><div><h2>戰前配置</h2><p>選中的物品會在開局時從倉庫取出，死亡時不會返還。</p></div><div class="small" id="loadoutWarning"></div></div>
         <div id="loadoutGrid" class="loadoutGrid"></div>
       </div>
 
-      <div class="panel sectionPanel">
+      <div class="panel sectionPanel" data-lobby-page="stash">
         <div class="sectionHead"><div><h2>倉庫</h2><p>撤離成功的物品會保存在這裡。</p></div><div class="stashToolbar"><button id="sellAllLootBtn" class="secondary">出售全部戰利品</button></div></div>
         <div id="stashGrid" class="stashGrid"></div>
       </div>
 
-      <div class="panel sectionPanel">
+      <div class="panel sectionPanel" data-lobby-page="shop">
         <div class="sectionHead"><div><h2>商城</h2><p>商城販售的是一件件實際物品，可重複購買並存入倉庫。</p></div><span class="small">1–5 級武器、防具、背包、醫療與彈藥</span></div>
         <div id="shopGrid" class="shopGrid"></div>
       </div>
@@ -171,6 +182,7 @@ canvas{display:block;max-width:100%;max-height:100%;margin:auto;background:#3149
   <div id="endScreen" class="overlay hidden"><div class="panel card"><span id="resultBadge" class="badge">行動結束</span><h2 id="resultTitle">撤離成功</h2><p id="resultDescription"></p><div class="resultStats"><div>擊倒<b id="resultKills">0</b></div><div>時間<b id="resultTime">00:00</b></div><div>撤離價值<b id="resultValue">0</b></div><div>任務獎金<b id="resultCredits">0</b></div></div><div id="recordText" class="small"></div><div class="buttons"><button id="playAgainBtn">再打一場</button><button id="returnLobbyBtn" class="secondary">返回大廳</button></div></div></div>
 </div>
 
+<script type="module" src="./ui-shell.js"></script>
 <script>
 (function(){
 'use strict';

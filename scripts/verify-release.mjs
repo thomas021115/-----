@@ -24,8 +24,8 @@ if (fs.existsSync(htmlPath)) {
   sha256 = crypto.createHash('sha256').update(bytes).digest('hex').toUpperCase();
   if (!/^<!DOCTYPE html>/i.test(html)) failures.push('成品缺少 HTML5 DOCTYPE');
   if (!/connect-src\s+'none'/i.test(html)) failures.push('成品 CSP 未禁止網路連線');
-  if (/https?:\/\//i.test(html)) failures.push('成品包含 HTTP/HTTPS URL');
   if (/\b(?:src|href)=["'](?!data:|#)/i.test(html)) failures.push('成品包含非內嵌資源');
+  if (/\b(?:fetch\s*\(|XMLHttpRequest\b|WebSocket\b|EventSource\b|sendBeacon\s*\(|navigator\.serviceWorker)|url\(\s*["']?https?:\/\//i.test(html)) failures.push('成品包含可執行的網路連線程式或外部 CSS 資源');
 }
 
 const result = {

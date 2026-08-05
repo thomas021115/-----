@@ -44,6 +44,8 @@ release/html/duck-game.html
 
 成品內已包含 JavaScript、CSS 與圖片。無塵室使用公司既有的 Edge 或 Chrome 雙擊開啟，不需要開發工具、安裝程序或網路。不要交付 EXE、README、校驗文字檔或其他附件。
 
+大廳使用單檔相容的 Hash 路由：`#/home`、`#/warzone`、`#/loadout`、`#/stash`、`#/shop`。切換分頁不需要本機伺服器，也不會產生網路請求。
+
 ## 供應鏈控制
 
 - pnpm、Vite、Vue 與建置外掛版本均固定，不使用浮動版本。
