@@ -1,38 +1,52 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import { build } from 'vite';
 
 const root = process.cwd();
-const source = path.join(root, 'src', 'game', 'index.html');
+const releaseRoot = path.resolve(root, 'release');
 const outputDir = path.join(root, 'release', 'html');
+const viteOutput = path.join(outputDir, 'index.html');
 const output = path.join(outputDir, 'duck-game.html');
 
+const resolvedOutputDir = path.resolve(outputDir);
+if (!resolvedOutputDir.startsWith(`${releaseRoot}${path.sep}`)) {
+  throw new Error(`拒絕清理非 release 目錄：${resolvedOutputDir}`);
+}
+
+fs.rmSync(resolvedOutputDir, { recursive: true, force: true });
 fs.mkdirSync(outputDir, { recursive: true });
-fs.copyFileSync(source, output);
+
+await build({
+  configFile: path.join(root, 'vite.config.mjs')
+});
+
+if (!fs.existsSync(viteOutput)) {
+  throw new Error('Vite 未產生 release/html/index.html');
+}
+
+fs.renameSync(viteOutput, output);
+
+const entries = fs.readdirSync(outputDir, { withFileTypes: true });
+if (entries.length !== 1 || !entries[0].isFile() || entries[0].name !== 'duck-game.html') {
+  throw new Error(`單檔輸出失敗：release/html 內容為 ${entries.map((entry) => entry.name).join(', ')}`);
+}
 
 const bytes = fs.readFileSync(output);
+const html = bytes.toString('utf8');
+if (/\b(?:src|href)=["'](?!data:|#)/i.test(html)) {
+  throw new Error('建置結果仍包含非內嵌資源');
+}
+if (/https?:\/\//i.test(html)) {
+  throw new Error('建置結果包含 HTTP/HTTPS URL');
+}
+
 const hash = crypto.createHash('sha256').update(bytes).digest('hex').toUpperCase();
-fs.writeFileSync(
-  path.join(outputDir, 'SHA256SUMS.txt'),
-  `${hash}  duck-game.html\r\n`,
-  'utf8'
-);
-fs.writeFileSync(
-  path.join(outputDir, 'README.txt'),
-  [
-    '鴨鎮撤離行動－單一 HTML 離線版',
-    '',
-    '1. 不需要安裝 VS Code、Node.js、pnpm 或任何套件。',
-    '2. 在無網路狀態下直接雙擊 duck-game.html。',
-    '3. 建議使用公司既有的最新版 Edge 或 Chrome。',
-    '4. 遊戲進度保存在該瀏覽器對本機檔案提供的 LocalStorage。',
-    '5. 複製到另一台電腦時，遊戲檔可執行，但瀏覽器存檔不會自動跟著複製。',
-    '',
-    `SHA-256: ${hash}`,
-    ''
-  ].join('\r\n'),
-  'utf8'
-);
 
-console.log(JSON.stringify({ output: path.relative(root, output), bytes: bytes.length, sha256: hash }, null, 2));
-
+console.log(JSON.stringify({
+  status: 'PASS',
+  output: path.relative(root, output),
+  filesInOutputDirectory: entries.length,
+  bytes: bytes.length,
+  sha256: hash
+}, null, 2));

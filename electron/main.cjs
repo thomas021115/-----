@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { app, BrowserWindow, session } = require('electron');
 
 const smokeTest = process.argv.includes('--smoke-test');
+const releaseHtmlTest = process.argv.includes('--release-html');
 const blockedNetworkRequests = [];
 const smokeUserDataDirectory = smokeTest
   ? path.join(app.getPath('temp'), `duck-town-extraction-smoke-${process.pid}`)
@@ -78,8 +79,12 @@ function createWindow() {
     }
   });
 
+  const gameFile = releaseHtmlTest
+    ? path.join(__dirname, '..', 'release', 'html', 'duck-game.html')
+    : path.join(__dirname, '..', 'src', 'game', 'index.html');
+
   win.loadFile(
-    path.join(__dirname, '..', 'src', 'game', 'index.html'),
+    gameFile,
     smokeTest ? { query: { selftest: '1' } } : undefined
   );
 
@@ -122,6 +127,7 @@ function createWindow() {
           && result.selftest?.maps?.length === 3;
         console.log(JSON.stringify({
           smoke: pass ? 'PASS' : 'FAIL',
+          target: releaseHtmlTest ? 'release/html/duck-game.html' : 'src/game/index.html',
           blockedNetworkRequests,
           result
         }));

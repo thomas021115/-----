@@ -2,7 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = process.cwd();
-const htmlPath = path.join(root, 'src', 'game', 'index.html');
+const requestedPath = process.argv[2] || path.join('src', 'game', 'index.html');
+const htmlPath = path.resolve(root, requestedPath);
+if (!fs.existsSync(htmlPath)) {
+  console.error(JSON.stringify({ status: 'FAIL', file: requestedPath, failures: ['找不到 HTML 檔案'] }, null, 2));
+  process.exit(1);
+}
 const html = fs.readFileSync(htmlPath, 'utf8');
 const failures = [];
 
@@ -77,4 +82,3 @@ const result = {
 
 console.log(JSON.stringify(result, null, 2));
 if (failures.length) process.exitCode = 1;
-

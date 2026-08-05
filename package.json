@@ -14,11 +14,14 @@
   "scripts": {
     "start": "node scripts/run-electron.mjs",
     "smoke": "node scripts/run-electron.mjs --smoke-test",
+    "smoke:html": "node scripts/run-electron.mjs --smoke-test --release-html",
     "verify": "node scripts/verify-offline.mjs",
+    "verify:html": "node scripts/verify-offline.mjs release/html/duck-game.html",
     "release:html": "node scripts/prepare-html-release.mjs",
     "verify:release": "node scripts/verify-release.mjs",
+    "build:html": "node scripts/prepare-html-release.mjs",
     "build:win": "node scripts/build-windows.mjs",
-    "build": "node scripts/build-windows.mjs"
+    "build": "node scripts/prepare-html-release.mjs"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.8",
