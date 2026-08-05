@@ -21,8 +21,11 @@
     "build": "node scripts/build-windows.mjs"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "6.0.8",
     "electron": "43.3.0",
-    "electron-builder": "26.15.3"
+    "electron-builder": "26.15.3",
+    "vite": "8.2.0",
+    "vite-plugin-singlefile": "2.3.3"
   },
   "build": {
     "appId": "tw.ducktown.extraction.offline",
@@ -61,5 +64,9 @@
       "artifactName": "duck-town-extraction-v${version}-portable.${ext}"
     },
     "publish": null
+  },
+  "dependencies": {
+    "vue": "3.5.40",
+    "vue-router": "4.6.4"
   }
 }
