@@ -10,8 +10,7 @@ import type { LobbyPage } from './types';
 const pages = [
   { id: 'home', path: '/home', short: '總', label: '行動總覽' },
   { id: 'warzone', path: '/warzone', short: '區', label: '戰區任務' },
-  { id: 'loadout', path: '/loadout', short: '裝', label: '戰前配置' },
-  { id: 'stash', path: '/stash', short: '倉', label: '永久倉庫' },
+  { id: 'loadout', path: '/loadout', short: '整', label: '整備與倉庫' },
   { id: 'shop', path: '/shop', short: '商', label: '物資商城' }
 ] satisfies readonly LobbyPage[];
 
@@ -21,6 +20,7 @@ const router = createRouter({
   routes: [
     { path: '/', redirect: '/home' },
     ...pages.map((page) => ({ path: page.path, component: EmptyPage, meta: { page: page.id } })),
+    { path: '/stash', redirect: '/loadout' },
     { path: '/:pathMatch(.*)*', redirect: '/home' }
   ]
 });

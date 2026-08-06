@@ -134,7 +134,7 @@ function createWindow() {
             uiShell = {
               routeCount: document.querySelectorAll('[data-ui-route]').length,
               routeChecks,
-              allRoutesPass: routeChecks.length === 5 && routeChecks.every((check) => check.pass)
+              allRoutesPass: routeChecks.length === 4 && routeChecks.every((check) => check.pass)
             };
             await window.__duckUi.go('/home');
           }
@@ -160,6 +160,9 @@ function createWindow() {
             debugApi: typeof window.__duckDebug === 'object',
             raidBalance: typeof window.__duckDebug?.raidBalance === 'function'
               ? window.__duckDebug.raidBalance()
+              : null,
+            warehouse: typeof window.__duckDebug?.warehouse === 'function'
+              ? window.__duckDebug.warehouse()
               : null,
             pauseMenu: typeof window.__duckDebug?.pauseMenu === 'function'
               ? window.__duckDebug.pauseMenu()
@@ -194,6 +197,10 @@ function createWindow() {
           && result.raidBalance?.details?.streetLights >= 20
           && result.raidBalance?.details?.cover >= 60
           && result.raidBalance?.difficulties?.length === 4
+          && result.warehouse?.merged === true
+          && result.warehouse?.capacity === 300
+          && result.warehouse?.columns === 15
+          && result.warehouse?.expandable === true
           && result.pauseMenu?.visible === true
           && result.pauseMenu?.buttons === 3
           && result.pauseMenu?.zIndex >= 80
@@ -207,7 +214,7 @@ function createWindow() {
           && result.selftest?.pass === true
           && result.selftest?.maps?.length === 3
           && (!releaseHtmlTest || (
-            result.uiShell?.routeCount === 5
+            result.uiShell?.routeCount === 4
             && result.uiShell?.allRoutesPass === true
           ));
         console.log(JSON.stringify({
