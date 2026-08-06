@@ -136,6 +136,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   active = false;
   renderer = 'unavailable';
   cameraMode = 'Perspective 2.5D';
+  visualMode = 'GrassMud + FauxFloors + AdditiveTracers';
   revision = THREE.REVISION;
   objectCount = 0;
   frameCount = 0;
@@ -151,7 +152,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   private readonly actorPool: THREE.Group[] = [];
   private readonly enemyVisionPool: THREE.Mesh[] = [];
   private readonly cratePool: THREE.Group[] = [];
-  private readonly bulletPool: THREE.Mesh[] = [];
+  private readonly bulletPool: THREE.Group[] = [];
   private readonly grenadePool: THREE.Mesh[] = [];
   private readonly smokePool: THREE.Mesh[] = [];
   private readonly explosionPool: THREE.Mesh[] = [];
@@ -165,7 +166,13 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   private mapReference: RaidMap | null = null;
   private mapStateKey = '';
   private readonly extractionRings: THREE.Mesh[] = [];
-  private readonly roofEntries: Array<{ mesh: THREE.Mesh; area: Building; opacity: number; wallMaterial: THREE.MeshStandardMaterial }> = [];
+  private readonly roofEntries: Array<{
+    mesh: THREE.Mesh;
+    area: Building;
+    opacity: number;
+    wallMaterial: THREE.MeshStandardMaterial;
+    facadeMaterials: Array<{ material: THREE.MeshStandardMaterial; opacity: number }>;
+  }> = [];
   private lastCameraCenter = new THREE.Vector2();
 
   constructor(private readonly container: HTMLElement, private readonly stage: HTMLElement) {
@@ -247,7 +254,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     this.scene.background = new THREE.Color(map.id === 'port' ? 0xb6d2e6 : map.id === 'wetland' ? 0xb9ddd3 : 0xc8dccb);
     if (this.scene.fog instanceof THREE.Fog) this.scene.fog.color.copy(this.scene.background);
 
-    const groundColor = new THREE.Color(color(map.palette.ground, 0x485f50)).offsetHSL(0, -0.06, 0.12);
+    const groundColor = new THREE.Color(color(map.palette.ground, 0x4f654d)).offsetHSL(0, 0.02, 0.015);
     const ground = new THREE.Mesh(
       new THREE.BoxGeometry(map.world.w, 8, map.world.h),
       new THREE.MeshStandardMaterial({ color: groundColor, roughness: 1 })
@@ -292,7 +299,8 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       return material;
     });
     buildings.forEach((building, index) => {
-      const height = building.visualHeight ? building.visualHeight * 3.2 : 82 + index % 3 * 18;
+      const floorCount = index % 3 === 0 || building.locked ? 3 : 2;
+      const height = floorCount * 48 + (building.visualHeight ?? 22) * 0.45;
       const floor = new THREE.Mesh(new THREE.BoxGeometry(Math.max(1, building.w - 90), 2, Math.max(1, building.h - 90)), floorMaterial);
       floor.position.set(building.x + building.w / 2, 1.1, building.y + building.h / 2);
       floor.receiveShadow = true;
@@ -300,7 +308,54 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       const roof = new THREE.Mesh(new THREE.BoxGeometry(building.w + 16, 6, building.h + 16), roofBase.clone());
       roof.position.set(building.x + building.w / 2, height + 3, building.y + building.h / 2);
       roof.castShadow = true;
-      this.roofEntries.push({ mesh: roof, area: building, opacity: roofBase.opacity, wallMaterial: buildingWallMaterials[index] });
+      const facadeMaterials: Array<{ material: THREE.MeshStandardMaterial; opacity: number }> = [];
+      const windowMaterial = new THREE.MeshStandardMaterial({
+        color: building.locked ? 0xa98244 : 0x4d7180,
+        emissive: building.locked ? 0x4b2f10 : 0x162c36,
+        emissiveIntensity: 0.42,
+        roughness: 0.3,
+        metalness: 0.22,
+        transparent: true,
+        opacity: 0.76
+      });
+      const bandMaterial = new THREE.MeshStandardMaterial({
+        color: building.locked ? 0x8a7045 : 0x87928b,
+        roughness: 0.82,
+        transparent: true,
+        opacity: 0.88
+      });
+      facadeMaterials.push({ material: windowMaterial, opacity: windowMaterial.opacity });
+      facadeMaterials.push({ material: bandMaterial, opacity: bandMaterial.opacity });
+      const storyHeight = height / floorCount;
+      for (let level = 1; level <= floorCount; level += 1) {
+        const windowY = Math.min(height - 17, storyHeight * level - storyHeight * 0.42);
+        const southWindows = new THREE.Mesh(
+          new THREE.BoxGeometry(Math.max(80, building.w * 0.62), Math.min(21, storyHeight * 0.28), 3.2),
+          windowMaterial
+        );
+        southWindows.position.set(building.x + building.w / 2, windowY, building.y + building.h + 1.8);
+        const eastWindows = new THREE.Mesh(
+          new THREE.BoxGeometry(3.2, Math.min(21, storyHeight * 0.28), Math.max(80, building.h * 0.56)),
+          windowMaterial
+        );
+        eastWindows.position.set(building.x + building.w + 1.8, windowY, building.y + building.h / 2);
+        this.staticRoot.add(southWindows, eastWindows);
+        if (level < floorCount) {
+          const bandY = storyHeight * level;
+          const southBand = new THREE.Mesh(new THREE.BoxGeometry(building.w + 7, 4.5, 5), bandMaterial);
+          southBand.position.set(building.x + building.w / 2, bandY, building.y + building.h + 2.5);
+          const eastBand = new THREE.Mesh(new THREE.BoxGeometry(5, 4.5, building.h + 7), bandMaterial);
+          eastBand.position.set(building.x + building.w + 2.5, bandY, building.y + building.h / 2);
+          this.staticRoot.add(southBand, eastBand);
+        }
+      }
+      this.roofEntries.push({
+        mesh: roof,
+        area: building,
+        opacity: roofBase.opacity,
+        wallMaterial: buildingWallMaterials[index],
+        facadeMaterials
+      });
       const rooftopUnit = new THREE.Mesh(
         new THREE.BoxGeometry(46 + index % 3 * 12, 14 + index % 2 * 5, 34 + index % 4 * 8),
         new THREE.MeshStandardMaterial({ color: index % 2 ? 0x485551 : 0x66716c, roughness: 0.72, metalness: 0.24 })
@@ -314,7 +369,8 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     (map.walls ?? []).forEach((wall) => {
       if (wall.visualKind === 'prop' || wall.visualKind === 'fence') return;
       const building = wall.buildingIndex == null ? null : buildings[wall.buildingIndex];
-      const height = building?.visualHeight ? building.visualHeight * 3.2 : wall.buildingIndex == null ? 32 : 82;
+      const floorCount = wall.buildingIndex != null && (wall.buildingIndex % 3 === 0 || building?.locked) ? 3 : 2;
+      const height = wall.buildingIndex == null ? 32 : floorCount * 48 + (building?.visualHeight ?? 22) * 0.45;
       const material = wall.buildingIndex == null ? wallMaterial : buildingWallMaterials[wall.buildingIndex] ?? wallMaterial;
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(wall.w, height, wall.h), material);
       mesh.position.set(wall.x + wall.w / 2, height / 2, wall.y + wall.h / 2);
@@ -348,7 +404,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       return value - Math.floor(value);
     };
     const points: Array<{ x: number; y: number; scaleX: number; scaleY: number; shade: number; angle: number }> = [];
-    for (let index = 0; index < 180 && points.length < 82; index += 1) {
+    for (let index = 0; index < 760 && points.length < 340; index += 1) {
       const x = 180 + pseudo(index, 1) * (map.world.w - 360);
       const y = 180 + pseudo(index, 2) * (map.world.h - 360);
       const onRoad = map.roads.some((road) => x > road.x - 80 && x < road.x + road.w + 80 && y > road.y - 80 && y < road.y + road.h + 80);
@@ -358,21 +414,25 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
         return dx * dx + dy * dy < 1.08;
       });
       if (onRoad || inWater) continue;
-      points.push({ x, y, scaleX: 130 + pseudo(index, 3) * 250, scaleY: 90 + pseudo(index, 4) * 190, shade: pseudo(index, 5), angle: pseudo(index, 6) * Math.PI });
+      points.push({ x, y, scaleX: 115 + pseudo(index, 3) * 270, scaleY: 80 + pseudo(index, 4) * 210, shade: pseudo(index, 5), angle: pseudo(index, 6) * Math.PI });
     }
     if (!points.length) return;
     const patches = new THREE.InstancedMesh(
       new THREE.CircleGeometry(1, 14),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.22, depthWrite: false }),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.42, depthWrite: false }),
       points.length
     );
-    const base = new THREE.Color(color(map.palette.ground, 0x485f50));
+    const terrainColors = map.id === 'wetland'
+      ? [0x3e684d, 0x55734e, 0x66583c, 0x806b47]
+      : map.id === 'port'
+        ? [0x425f48, 0x536a49, 0x66543c, 0x796246]
+        : [0x486642, 0x5c7049, 0x6b583b, 0x826a45];
     const rotation = new THREE.Quaternion();
     points.forEach((point, index) => {
       rotation.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, point.angle));
       tempMatrix.compose(new THREE.Vector3(point.x, 0.15, point.y), rotation, new THREE.Vector3(point.scaleX, point.scaleY, 1));
       patches.setMatrixAt(index, tempMatrix);
-      tempColor.copy(base).offsetHSL(point.shade > 0.5 ? 0.015 : -0.015, point.shade > 0.5 ? 0.04 : -0.03, point.shade > 0.5 ? 0.08 : -0.07);
+      tempColor.set(terrainColors[Math.min(terrainColors.length - 1, Math.floor(point.shade * terrainColors.length))]);
       patches.setColorAt(index, tempColor);
     });
     patches.instanceMatrix.needsUpdate = true;
@@ -695,18 +755,66 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     for (let index = entities.length; index < pool.length; index += 1) pool[index].visible = false;
   }
 
+  private syncBullets(bullets: PointEntity[]): void {
+    bullets.forEach((bullet, index) => {
+      while (this.bulletPool.length <= index) {
+        const group = new THREE.Group();
+        const glow = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshBasicMaterial({ color: 0xff321f, transparent: true, opacity: 0.18, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        glow.name = 'glow';
+        const tail = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshBasicMaterial({ color: 0xff5a20, transparent: true, opacity: 0.58, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        tail.name = 'tail';
+        const core = new THREE.Mesh(
+          new THREE.BoxGeometry(1, 1, 1),
+          new THREE.MeshBasicMaterial({ color: 0xfff2a6, transparent: true, opacity: 0.98, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        core.name = 'core';
+        const head = new THREE.Mesh(
+          new THREE.ConeGeometry(1, 1, 8),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.96, blending: THREE.AdditiveBlending, depthWrite: false })
+        );
+        head.name = 'head';
+        head.geometry.rotateZ(-Math.PI / 2);
+        group.add(glow, tail, core, head);
+        this.bulletPool.push(group);
+        this.dynamicRoot.add(group);
+      }
+      const group = this.bulletPool[index];
+      const angle = Math.atan2(bullet.vy ?? 0, bullet.vx ?? 1);
+      const id = bullet.weaponId ?? '';
+      const length = /anti|marksman/i.test(id) ? 68 : /pistol/i.test(id) ? 21 : /smg|compact/i.test(id) ? 31 : 45;
+      const thickness = Math.max(2.8, Math.min(5.4, bullet.r ? bullet.r * 1.25 : 3.5));
+      const hostile = bullet.owner !== 'player';
+      group.visible = true;
+      group.position.set(bullet.x, 20, bullet.y);
+      group.rotation.y = -angle;
+      const glow = group.getObjectByName('glow') as THREE.Mesh;
+      glow.position.x = -length * 0.22;
+      glow.scale.set(length * 1.32, thickness * 2.7, thickness * 2.1);
+      const glowMaterial = glow.material as THREE.MeshBasicMaterial;
+      glowMaterial.color.set(hostile ? 0xff2419 : 0xff3d18);
+      glowMaterial.opacity = hostile ? 0.24 : 0.18;
+      const tail = group.getObjectByName('tail') as THREE.Mesh;
+      tail.position.x = -length * 0.2;
+      tail.scale.set(length, thickness * 1.15, thickness * 0.92);
+      (tail.material as THREE.MeshBasicMaterial).color.set(hostile ? 0xff301b : 0xff6a22);
+      const core = group.getObjectByName('core') as THREE.Mesh;
+      core.position.x = length * 0.08;
+      core.scale.set(length * 0.56, thickness * 0.48, thickness * 0.42);
+      const head = group.getObjectByName('head') as THREE.Mesh;
+      head.position.x = length * 0.43;
+      head.scale.set(length * 0.22, thickness * 1.15, thickness * 1.15);
+    });
+    for (let index = bullets.length; index < this.bulletPool.length; index += 1) this.bulletPool[index].visible = false;
+  }
+
   private syncEffects(snapshot: RaidSnapshot): void {
-    this.syncMeshPool(snapshot.bullets, this.bulletPool,
-      () => new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshBasicMaterial({ color: 0xffdc5c })),
-      (mesh, bullet) => {
-        const angle = Math.atan2(bullet.vy ?? 0, bullet.vx ?? 1);
-        const id = bullet.weaponId ?? '';
-        const length = /anti|marksman/i.test(id) ? 62 : /pistol/i.test(id) ? 20 : /smg|compact/i.test(id) ? 30 : 43;
-        mesh.position.set(bullet.x, 19, bullet.y);
-        mesh.rotation.y = -angle;
-        mesh.scale.set(length, bullet.r ? Math.max(3, bullet.r * 1.5) : 4, 4);
-        (mesh.material as THREE.MeshBasicMaterial).color.set(bullet.owner === 'player' ? 0xffdc5c : 0xff4c35);
-      });
+    this.syncBullets(snapshot.bullets);
 
     this.syncMeshPool(snapshot.thrownGrenades, this.grenadePool,
       () => new THREE.Mesh(new THREE.SphereGeometry(8, 10, 8), new THREE.MeshStandardMaterial({ color: 0x526047, roughness: 0.7, metalness: 0.16 })),
@@ -799,6 +907,10 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       entry.mesh.castShadow = !inside;
       entry.wallMaterial.opacity += ((inside ? 0.13 : 1) - entry.wallMaterial.opacity) * 0.2;
       entry.wallMaterial.depthWrite = !inside;
+      entry.facadeMaterials.forEach(({ material: facadeMaterial, opacity }) => {
+        facadeMaterial.opacity += ((inside ? 0.035 : opacity) - facadeMaterial.opacity) * 0.2;
+        facadeMaterial.depthWrite = !inside;
+      });
     });
   }
 
@@ -867,6 +979,7 @@ function installThreeRaid(): void {
       active: false,
       renderer: 'unavailable',
       cameraMode: 'Canvas fallback',
+      visualMode: 'Canvas fallback',
       revision: THREE.REVISION,
       objectCount: 0,
       frameCount: 0,

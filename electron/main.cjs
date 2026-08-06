@@ -149,6 +149,7 @@ function createWindow() {
               active: window.__duckThreeRaid.active,
               renderer: window.__duckThreeRaid.renderer,
               cameraMode: window.__duckThreeRaid.cameraMode,
+              visualMode: window.__duckThreeRaid.visualMode,
               revision: window.__duckThreeRaid.revision,
               objectCount: window.__duckThreeRaid.objectCount,
               frameCount: window.__duckThreeRaid.frameCount
@@ -178,6 +179,7 @@ function createWindow() {
           && result.threeRaid?.ready === true
           && result.threeRaid?.active === true
           && result.threeRaid?.cameraMode === 'Perspective 2.5D'
+          && result.threeRaid?.visualMode === 'GrassMud + FauxFloors + AdditiveTracers'
           && result.threeRaid?.objectCount >= 100
           && result.threeRaid?.frameCount >= 1
           && result.startButton

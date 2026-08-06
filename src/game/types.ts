@@ -27,6 +27,7 @@ export interface DuckThreeRaidBridge {
   active: boolean;
   renderer: string;
   cameraMode: string;
+  visualMode: string;
   revision: string;
   objectCount: number;
   frameCount: number;

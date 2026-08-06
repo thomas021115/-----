@@ -3,7 +3,7 @@ import type { MapDefinition } from '../types';
 export const maps: MapDefinition[] = [
   {
     id:'depot',name:'灰港谷地',subtitle:'西側工業園區、中央水庫與東側住宅聚落',thumbClass:'map1',
-    palette:{ground:'#485f50',wall:'#29332f',top:'#68736e',grid:'rgba(230,244,233,.035)',patch:'rgba(42,58,49,.18)',road:'rgba(41,43,40,.58)',tree1:'#203e29',tree2:'#365e3e',minimap:'#60796b',floor:'#58685f',water:'#234f5e'},
+    palette:{ground:'#506749',wall:'#29332f',top:'#68736e',grid:'rgba(230,244,233,.035)',patch:'rgba(42,58,49,.18)',road:'rgba(41,43,40,.58)',tree1:'#203e29',tree2:'#365e3e',minimap:'#60796b',floor:'#58685f',water:'#234f5e'},
     world:{w:16400,h:10800},spawn:{x:620,y:9250},extraction:{x:15150,y:650,w:720,h:900},
     extractions:[{x:15150,y:650,w:720,h:900},{x:14950,y:9000,w:850,h:850},{x:3500,y:9500,w:820,h:760}],
     roads:[{x:0,y:4850,w:16400,h:520},{x:5000,y:0,w:580,h:10800},{x:10000,y:0,w:520,h:10800},{x:0,y:8350,w:16400,h:420}],
@@ -19,7 +19,7 @@ export const maps: MapDefinition[] = [
   },
   {
     id:'wetland',name:'白楊濕地',subtitle:'研究園區、河道、農場與分散村落',thumbClass:'map2',
-    palette:{ground:'#3d6863',wall:'#26393b',top:'#5b7a78',grid:'rgba(225,248,245,.035)',patch:'rgba(53,91,82,.16)',road:'rgba(43,58,57,.52)',tree1:'#19463a',tree2:'#347567',minimap:'#668f88',floor:'#526e6c',water:'#174b59'},
+    palette:{ground:'#416553',wall:'#26393b',top:'#5b7a78',grid:'rgba(225,248,245,.035)',patch:'rgba(53,91,82,.16)',road:'rgba(43,58,57,.52)',tree1:'#19463a',tree2:'#347567',minimap:'#668f88',floor:'#526e6c',water:'#174b59'},
     world:{w:16400,h:10800},spawn:{x:620,y:700},extraction:{x:14900,y:9100,w:850,h:900},
     extractions:[{x:14900,y:9100,w:850,h:900},{x:7500,y:500,w:820,h:820},{x:650,y:9100,w:820,h:850}],
     roads:[{x:0,y:2500,w:16400,h:420},{x:0,y:7450,w:16400,h:460},{x:4300,y:0,w:500,h:10800},{x:12100,y:0,w:520,h:10800}],
@@ -35,7 +35,7 @@ export const maps: MapDefinition[] = [
   },
   {
     id:'port',name:'黑潮海岸',subtitle:'貨櫃碼頭、海關區、漁村與海岸林地',thumbClass:'map3',
-    palette:{ground:'#2d4260',wall:'#1c2739',top:'#53698c',grid:'rgba(229,235,255,.035)',patch:'rgba(41,58,88,.18)',road:'rgba(16,25,39,.62)',tree1:'#1b3049',tree2:'#315378',minimap:'#5a7197',floor:'#465a75',water:'#112c49'},
+    palette:{ground:'#465b49',wall:'#1c2739',top:'#53698c',grid:'rgba(229,235,255,.035)',patch:'rgba(63,78,56,.18)',road:'rgba(16,25,39,.62)',tree1:'#1b3049',tree2:'#315378',minimap:'#5a7197',floor:'#465a75',water:'#112c49'},
     world:{w:16400,h:10800},spawn:{x:600,y:5400},extraction:{x:15150,y:700,w:720,h:900},
     extractions:[{x:15150,y:700,w:720,h:900},{x:14900,y:8950,w:820,h:900},{x:700,y:9000,w:820,h:820}],
     roads:[{x:0,y:4650,w:16400,h:520},{x:0,y:8000,w:16400,h:420},{x:5200,y:0,w:560,h:10800},{x:11100,y:0,w:520,h:10800}],
