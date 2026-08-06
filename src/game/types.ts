@@ -22,6 +22,20 @@ export interface DuckThreePreviewDebug {
   reason?: string;
 }
 
+export interface DuckThreeRaidBridge {
+  ready: boolean;
+  active: boolean;
+  renderer: string;
+  revision: string;
+  objectCount: number;
+  frameCount: number;
+  reason?: string;
+  render(snapshot: unknown): boolean;
+  screenToWorld(x: number, y: number): { x: number; y: number } | null;
+  worldToScreen(x: number, y: number, height?: number): { x: number; y: number } | null;
+  deactivate(): void;
+}
+
 export interface ItemDefinition {
   name: string;
   icon: string;
@@ -48,5 +62,6 @@ declare global {
   interface Window {
     __duckUi: DuckUiBridge;
     __duckThreePreview: DuckThreePreviewDebug;
+    __duckThreeRaid: DuckThreeRaidBridge;
   }
 }

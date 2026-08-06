@@ -42,7 +42,9 @@ button.danger{background:#693636;color:#fff;border:1px solid #935252;box-shadow:
 .stashToolbar{display:flex;flex-wrap:wrap;gap:9px}.stashGrid,.shopGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stashCard,.shopCard{min-height:170px}.itemIcon{width:42px;height:42px;border-radius:10px;display:grid;place-items:center;background:#1c3029;border:1px solid #3c584d;font-size:22px;margin-bottom:9px}.price{margin:10px 0;color:var(--yellow);font-weight:900}.qty{color:var(--green);font-weight:900}.cardButtons{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.cardButtons button{padding:8px 11px;font-size:13px}
 canvas{display:block;max-width:100%;max-height:100%;margin:auto;background:#31493d;box-shadow:0 0 60px rgba(0,0,0,.72);cursor:crosshair}
 #gameScreen{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#15231e 0%,#07100e 65%,#040706 100%)}
-#hud{position:absolute;inset:0;pointer-events:none}.hudbox{position:absolute;padding:10px 12px;border-radius:10px;background:rgba(4,10,8,.79);border:1px solid rgba(180,215,199,.21);text-shadow:0 1px 2px #000}
+.raidStage{position:relative;width:min(100vw,calc(100vh * 16 / 9));aspect-ratio:16/9;overflow:hidden;background:#24362e;box-shadow:0 0 60px rgba(0,0,0,.72)}
+.raidStage>#game,.threeRaid{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;margin:0}.raidStage>#game{z-index:2;background:#31493d;box-shadow:none}.threeRaid{z-index:1;overflow:hidden;background:radial-gradient(circle at 50% 36%,#68806f,#26372f 78%)}.threeRaid canvas{width:100%!important;height:100%!important;max-width:none;max-height:none;margin:0;background:transparent;box-shadow:none;pointer-events:none}.raidStage.threeRaidReady>#game{background:transparent}
+#hud{position:absolute;inset:0;z-index:4;pointer-events:none}.hudbox{position:absolute;padding:10px 12px;border-radius:10px;background:rgba(4,10,8,.79);border:1px solid rgba(180,215,199,.21);text-shadow:0 1px 2px #000}
 #playerHud{left:14px;top:14px;min-width:292px}#missionHud{right:14px;top:14px;max-width:390px;text-align:right}#ammoHud{right:14px;bottom:14px;text-align:right;font-size:27px;font-weight:900}#backpackHud{left:14px;bottom:154px;min-width:220px}
 #interactHud{left:50%;bottom:24px;transform:translateX(-50%);font-weight:900;opacity:0;transition:opacity .12s;white-space:nowrap}#toastHud{left:50%;top:17%;transform:translateX(-50%);font-weight:900;color:var(--yellow);opacity:0;transition:opacity .22s}
 .healthbar,.staminabar{height:10px;margin-top:5px;background:#26332e;border:1px solid #53685f;border-radius:99px;overflow:hidden}.healthbar i,.staminabar i{display:block;width:100%;height:100%}.healthbar i{background:linear-gradient(90deg,#49bd69,#a3e762)}.staminabar i{background:linear-gradient(90deg,#62b9ff,#a5e1ff)}
@@ -159,7 +161,10 @@ canvas{display:block;max-width:100%;max-height:100%;margin:auto;background:#3149
   </div>
 
   <div id="gameScreen" class="screen hidden">
-    <canvas id="game" width="1280" height="720"></canvas>
+    <div id="raidStage" class="raidStage">
+      <div id="threeRaid" class="threeRaid" aria-hidden="true"></div>
+      <canvas id="game" width="1280" height="720"></canvas>
+    </div>
     <div id="hud" class="hidden">
       <div id="playerHud" class="hudbox">
         <div><b>生命值</b>　<span id="hpText">100 / 100</span></div><div class="healthbar"><i id="hpBar"></i></div>

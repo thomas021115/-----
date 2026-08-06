@@ -108,6 +108,7 @@ function createWindow() {
     win.webContents.once('did-finish-load', async () => {
       try {
         const result = await win.webContents.executeJavaScript(`(async () => {
+          await new Promise((resolve) => setTimeout(resolve, 180));
           const selftestText = document.getElementById('selftestResult')?.textContent || '';
           let selftest = null;
           try { selftest = JSON.parse(selftestText); } catch (_error) {}
@@ -142,6 +143,15 @@ function createWindow() {
             canvas: !!document.getElementById('game'),
             threePreviewCanvas: !!document.querySelector('#threePreview canvas'),
             threePreview: window.__duckThreePreview ? { ...window.__duckThreePreview } : null,
+            threeRaidCanvas: !!document.querySelector('#threeRaid canvas'),
+            threeRaid: window.__duckThreeRaid ? {
+              ready: window.__duckThreeRaid.ready,
+              active: window.__duckThreeRaid.active,
+              renderer: window.__duckThreeRaid.renderer,
+              revision: window.__duckThreeRaid.revision,
+              objectCount: window.__duckThreeRaid.objectCount,
+              frameCount: window.__duckThreeRaid.frameCount
+            } : null,
             startButton: !!document.getElementById('startRaidBtn'),
             difficultyCards: document.querySelectorAll('[data-difficulty]').length,
             debugApi: typeof window.__duckDebug === 'object',
@@ -156,6 +166,11 @@ function createWindow() {
           && result.threePreview?.ready === true
           && result.threePreview?.objectCount >= 80
           && result.threePreview?.frameCount >= 1
+          && result.threeRaidCanvas
+          && result.threeRaid?.ready === true
+          && result.threeRaid?.active === true
+          && result.threeRaid?.objectCount >= 100
+          && result.threeRaid?.frameCount >= 1
           && result.startButton
           && result.difficultyCards === 4
           && result.debugApi
