@@ -148,11 +148,13 @@ function createWindow() {
               ready: window.__duckThreeRaid.ready,
               active: window.__duckThreeRaid.active,
               renderer: window.__duckThreeRaid.renderer,
+              cameraMode: window.__duckThreeRaid.cameraMode,
               revision: window.__duckThreeRaid.revision,
               objectCount: window.__duckThreeRaid.objectCount,
               frameCount: window.__duckThreeRaid.frameCount
             } : null,
             startButton: !!document.getElementById('startRaidBtn'),
+            saveExitButton: !!document.getElementById('saveExitBtn'),
             difficultyCards: document.querySelectorAll('[data-difficulty]').length,
             debugApi: typeof window.__duckDebug === 'object',
             raidBalance: typeof window.__duckDebug?.raidBalance === 'function'
@@ -172,9 +174,11 @@ function createWindow() {
           && result.threeRaidCanvas
           && result.threeRaid?.ready === true
           && result.threeRaid?.active === true
+          && result.threeRaid?.cameraMode === 'Perspective 2.5D'
           && result.threeRaid?.objectCount >= 100
           && result.threeRaid?.frameCount >= 1
           && result.startButton
+          && result.saveExitButton
           && result.difficultyCards === 4
           && result.debugApi
           && result.raidBalance?.extractionCount === 3

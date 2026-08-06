@@ -69,7 +69,8 @@ type RaidSnapshot = {
 const VIEW_WIDTH = 1280;
 const VIEW_HEIGHT = 720;
 const CAMERA_HEIGHT = 1050;
-const CAMERA_TRAIL = 620;
+const CAMERA_TRAIL = 760;
+const CAMERA_LOOK_AHEAD = 125;
 const tempMatrix = new THREE.Matrix4();
 const tempColor = new THREE.Color();
 
@@ -130,13 +131,14 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   ready = false;
   active = false;
   renderer = 'unavailable';
+  cameraMode = 'Perspective 2.5D';
   revision = THREE.REVISION;
   objectCount = 0;
   frameCount = 0;
   reason?: string;
 
   private readonly scene = new THREE.Scene();
-  private readonly camera = new THREE.OrthographicCamera(-VIEW_WIDTH / 2, VIEW_WIDTH / 2, VIEW_HEIGHT / 2, -VIEW_HEIGHT / 2, 1, 3200);
+  private readonly camera = new THREE.PerspectiveCamera(41, VIEW_WIDTH / VIEW_HEIGHT, 1, 4200);
   private readonly webgl: THREE.WebGLRenderer;
   private readonly staticRoot = new THREE.Group();
   private readonly dynamicRoot = new THREE.Group();
@@ -158,6 +160,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   private mapReference: RaidMap | null = null;
   private mapStateKey = '';
   private readonly extractionRings: THREE.Mesh[] = [];
+  private readonly roofEntries: Array<{ mesh: THREE.Mesh; area: Building; opacity: number }> = [];
   private lastCameraCenter = new THREE.Vector2();
 
   constructor(private readonly container: HTMLElement, private readonly stage: HTMLElement) {
@@ -178,7 +181,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     this.configureLights();
     this.createAimGuide();
     this.dynamicRoot.add(this.grenadeAim, this.extraction);
-    this.positionCamera(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 0);
+    this.positionCamera(VIEW_WIDTH / 2, VIEW_HEIGHT / 2, 0, 0, true);
     this.webgl.render(this.scene, this.camera);
     this.renderer = this.webgl.capabilities.isWebGL2 ? 'WebGL 2' : 'WebGL';
     this.ready = true;
@@ -213,13 +216,18 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     this.grenadeAim.visible = false;
   }
 
-  private positionCamera(centerX: number, centerY: number, shake: number): void {
+  private positionCamera(centerX: number, centerY: number, angle: number, shake: number, snap = false): void {
+    const targetX = centerX + Math.cos(angle) * CAMERA_LOOK_AHEAD;
+    const targetY = centerY + Math.sin(angle) * CAMERA_LOOK_AHEAD;
+    if (snap) this.lastCameraCenter.set(targetX, targetY);
+    else this.lastCameraCenter.lerp(new THREE.Vector2(targetX, targetY), 0.12);
     const jitterX = shake ? Math.sin(performance.now() * 0.071) * shake : 0;
     const jitterY = shake ? Math.cos(performance.now() * 0.083) * shake : 0;
-    this.camera.position.set(centerX + jitterX, CAMERA_HEIGHT, centerY + CAMERA_TRAIL + jitterY);
-    this.camera.lookAt(centerX + jitterX, 0, centerY + jitterY);
+    const focusX = this.lastCameraCenter.x + jitterX;
+    const focusY = this.lastCameraCenter.y + jitterY;
+    this.camera.position.set(focusX, CAMERA_HEIGHT, focusY + CAMERA_TRAIL);
+    this.camera.lookAt(focusX, 18, focusY);
     this.camera.updateMatrixWorld();
-    this.lastCameraCenter.set(centerX, centerY);
   }
 
   private mapKey(map: RaidMap): string {
@@ -230,6 +238,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   private rebuildMap(map: RaidMap): void {
     disposeTree(this.staticRoot);
     this.staticRoot.clear();
+    this.roofEntries.length = 0;
     this.scene.background = new THREE.Color(color(map.palette.ground, 0x30443a));
     if (this.scene.fog instanceof THREE.Fog) this.scene.fog.color.copy(this.scene.background);
 
@@ -277,9 +286,11 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       const floor = new THREE.Mesh(new THREE.BoxGeometry(Math.max(1, building.w - 90), 2, Math.max(1, building.h - 90)), floorMaterial);
       floor.position.set(building.x + building.w / 2, 1.1, building.y + building.h / 2);
       floor.receiveShadow = true;
-      const roof = new THREE.Mesh(new THREE.BoxGeometry(building.w + 16, 6, building.h + 16), building.locked ? lockedRoofMaterial : roofMaterial);
+      const roofBase = building.locked ? lockedRoofMaterial : roofMaterial;
+      const roof = new THREE.Mesh(new THREE.BoxGeometry(building.w + 16, 6, building.h + 16), roofBase.clone());
       roof.position.set(building.x + building.w / 2, height + 3, building.y + building.h / 2);
       roof.castShadow = true;
+      this.roofEntries.push({ mesh: roof, area: building, opacity: roofBase.opacity });
       const rooftopUnit = new THREE.Mesh(
         new THREE.BoxGeometry(46 + index % 3 * 12, 14 + index % 2 * 5, 34 + index % 4 * 8),
         new THREE.MeshStandardMaterial({ color: index % 2 ? 0x485551 : 0x66716c, roughness: 0.72, metalness: 0.24 })
@@ -659,6 +670,20 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     });
   }
 
+  private updateRoofOcclusion(player: PointEntity): void {
+    this.roofEntries.forEach((entry) => {
+      const margin = 34;
+      const inside = player.x > entry.area.x - margin
+        && player.x < entry.area.x + entry.area.w + margin
+        && player.y > entry.area.y - margin
+        && player.y < entry.area.y + entry.area.h + margin;
+      const material = entry.mesh.material as THREE.MeshStandardMaterial;
+      const targetOpacity = inside ? 0.07 : entry.opacity;
+      material.opacity += (targetOpacity - material.opacity) * 0.18;
+      entry.mesh.castShadow = !inside;
+    });
+  }
+
   private updateObjectCount(): void {
     let count = 0;
     this.scene.traverse(() => { count += 1; });
@@ -671,15 +696,17 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     if (!snapshot.map || !snapshot.player || !snapshot.camera) return false;
     const key = this.mapKey(snapshot.map);
     if (this.mapReference !== snapshot.map || this.mapStateKey !== key) this.rebuildMap(snapshot.map);
+    const enteringRaid = !this.active;
     this.active = true;
     this.stage.classList.add('threeRaidReady');
     const centerX = snapshot.camera.x + VIEW_WIDTH / 2;
     const centerY = snapshot.camera.y + VIEW_HEIGHT / 2;
-    this.positionCamera(centerX, centerY, snapshot.screenShake ?? 0);
+    this.positionCamera(centerX, centerY, snapshot.player.angle ?? 0, snapshot.screenShake ?? 0, enteringRaid);
     this.syncActors(snapshot);
     this.syncCrates(snapshot.crates ?? []);
     this.syncEffects(snapshot);
     this.updateGrenadeAim(snapshot);
+    this.updateRoofOcclusion(snapshot.player);
     this.updateExtraction(snapshot.map, snapshot.gameTime ?? 0);
     this.webgl.render(this.scene, this.camera);
     this.frameCount += 1;
@@ -721,6 +748,7 @@ function installThreeRaid(): void {
       ready: false,
       active: false,
       renderer: 'unavailable',
+      cameraMode: 'Canvas fallback',
       revision: THREE.REVISION,
       objectCount: 0,
       frameCount: 0,
