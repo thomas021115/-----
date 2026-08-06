@@ -160,6 +160,9 @@ function createWindow() {
             raidBalance: typeof window.__duckDebug?.raidBalance === 'function'
               ? window.__duckDebug.raidBalance()
               : null,
+            pauseMenu: typeof window.__duckDebug?.pauseMenu === 'function'
+              ? window.__duckDebug.pauseMenu()
+              : null,
             uiShell,
             bodyText: document.body.innerText.length,
             selftest
@@ -183,7 +186,15 @@ function createWindow() {
           && result.debugApi
           && result.raidBalance?.extractionCount === 3
           && result.raidBalance?.extractionsClear === true
+          && result.raidBalance?.details?.normalChests >= 18
+          && result.raidBalance?.details?.grass >= 200
+          && result.raidBalance?.details?.fences >= 12
+          && result.raidBalance?.details?.streetLights >= 20
+          && result.raidBalance?.details?.cover >= 60
           && result.raidBalance?.difficulties?.length === 4
+          && result.pauseMenu?.visible === true
+          && result.pauseMenu?.buttons === 3
+          && result.pauseMenu?.zIndex >= 80
           && result.raidBalance.difficulties.every((difficulty, index, all) => index === 0 || (
             difficulty.vision > all[index - 1].vision
             && difficulty.accuracyScale < all[index - 1].accuracyScale
