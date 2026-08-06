@@ -155,6 +155,9 @@ function createWindow() {
             startButton: !!document.getElementById('startRaidBtn'),
             difficultyCards: document.querySelectorAll('[data-difficulty]').length,
             debugApi: typeof window.__duckDebug === 'object',
+            raidBalance: typeof window.__duckDebug?.raidBalance === 'function'
+              ? window.__duckDebug.raidBalance()
+              : null,
             uiShell,
             bodyText: document.body.innerText.length,
             selftest
@@ -174,6 +177,15 @@ function createWindow() {
           && result.startButton
           && result.difficultyCards === 4
           && result.debugApi
+          && result.raidBalance?.extractionCount === 3
+          && result.raidBalance?.extractionsClear === true
+          && result.raidBalance?.difficulties?.length === 4
+          && result.raidBalance.difficulties.every((difficulty, index, all) => index === 0 || (
+            difficulty.vision > all[index - 1].vision
+            && difficulty.accuracyScale < all[index - 1].accuracyScale
+            && difficulty.reactionScale < all[index - 1].reactionScale
+            && difficulty.trackingScale > all[index - 1].trackingScale
+          ))
           && result.bodyText > 100
           && result.selftest?.pass === true
           && result.selftest?.maps?.length === 3

@@ -53,6 +53,7 @@ export interface MapDefinition {
   world: { w: number; h: number };
   spawn: { x: number; y: number };
   extraction: { x: number; y: number; w: number; h: number };
+  extractions: Array<{ x: number; y: number; w: number; h: number }>;
   roads: Array<{ x: number; y: number; w: number; h: number }>;
   waterZones: Array<{ x: number; y: number; rx: number; ry: number }>;
   buildingSpecs: Array<Record<string, string | number | boolean>>;

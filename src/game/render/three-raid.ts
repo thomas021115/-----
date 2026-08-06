@@ -34,6 +34,7 @@ type RaidMap = {
   palette: Record<string, string>;
   world: { w: number; h: number };
   extraction: Rect & { active?: boolean };
+  extractions?: Array<Rect & { active?: boolean }>;
   roads: Rect[];
   waterZones: Array<{ x: number; y: number; rx: number; ry: number }>;
   walls?: Rect[];
@@ -156,7 +157,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   private readonly extraction = new THREE.Group();
   private mapReference: RaidMap | null = null;
   private mapStateKey = '';
-  private extractionRing: THREE.Mesh | null = null;
+  private readonly extractionRings: THREE.Mesh[] = [];
   private lastCameraCenter = new THREE.Vector2();
 
   constructor(private readonly container: HTMLElement, private readonly stage: HTMLElement) {
@@ -223,7 +224,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
 
   private mapKey(map: RaidMap): string {
     const locks = map.lockedRooms?.map((room) => room.unlocked ? '1' : '0').join('') ?? '';
-    return `${map.id}:${map.walls?.length ?? 0}:${map.bushes?.length ?? 0}:${locks}`;
+    return `${map.id}:${map.walls?.length ?? 0}:${map.bushes?.length ?? 0}:${map.extractions?.length ?? 1}:${locks}`;
   }
 
   private rebuildMap(map: RaidMap): void {
@@ -239,6 +240,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     ground.position.set(map.world.w / 2, -5, map.world.h / 2);
     ground.receiveShadow = true;
     this.staticRoot.add(ground);
+    this.addTerrainDetails(map);
 
     const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x343a36, roughness: 1 });
     map.roads.forEach((road) => {
@@ -247,6 +249,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       mesh.receiveShadow = true;
       this.staticRoot.add(mesh);
     });
+    this.addRoadMarkings(map.roads);
 
     const waterMaterial = new THREE.MeshStandardMaterial({ color: color(map.palette.water, 0x174b59), roughness: 0.22, metalness: 0.12, transparent: true, opacity: 0.9 });
     map.waterZones.forEach((water) => {
@@ -255,6 +258,14 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       mesh.scale.set(water.rx, water.ry, 1);
       mesh.position.set(water.x, 1.4, water.y);
       this.staticRoot.add(mesh);
+      const shore = new THREE.Mesh(
+        new THREE.RingGeometry(0.91, 1, 40),
+        new THREE.MeshBasicMaterial({ color: 0x88a694, transparent: true, opacity: 0.24, side: THREE.DoubleSide, depthWrite: false })
+      );
+      shore.rotation.x = -Math.PI / 2;
+      shore.scale.set(water.rx, water.ry, 1);
+      shore.position.set(water.x, 1.8, water.y);
+      this.staticRoot.add(shore);
     });
 
     const buildings = map.buildings?.length ? map.buildings : map.buildingSpecs ?? [];
@@ -269,7 +280,13 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
       const roof = new THREE.Mesh(new THREE.BoxGeometry(building.w + 16, 6, building.h + 16), building.locked ? lockedRoofMaterial : roofMaterial);
       roof.position.set(building.x + building.w / 2, height + 3, building.y + building.h / 2);
       roof.castShadow = true;
-      this.staticRoot.add(floor, roof);
+      const rooftopUnit = new THREE.Mesh(
+        new THREE.BoxGeometry(46 + index % 3 * 12, 14 + index % 2 * 5, 34 + index % 4 * 8),
+        new THREE.MeshStandardMaterial({ color: index % 2 ? 0x485551 : 0x66716c, roughness: 0.72, metalness: 0.24 })
+      );
+      rooftopUnit.position.set(building.x + building.w * (index % 2 ? 0.34 : 0.66), height + 13, building.y + building.h * (index % 3 ? 0.38 : 0.62));
+      shadow(rooftopUnit);
+      this.staticRoot.add(floor, roof, rooftopUnit);
     });
 
     const wallMaterial = new THREE.MeshStandardMaterial({ color: color(map.palette.wall, 0x29332f), roughness: 0.84 });
@@ -295,10 +312,80 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
 
     this.addTrees(map.bushes ?? []);
     this.addProps(map);
-    this.buildExtraction(map.extraction);
+    this.buildExtractions(map.extractions?.length ? map.extractions : [map.extraction]);
     this.mapReference = map;
     this.mapStateKey = this.mapKey(map);
     this.updateObjectCount();
+  }
+
+  private addTerrainDetails(map: RaidMap): void {
+    const seed = Array.from(map.id).reduce((sum, character) => sum + character.charCodeAt(0), 0);
+    const pseudo = (index: number, salt: number): number => {
+      const value = Math.sin((index + 1) * 12.9898 + seed * 0.173 + salt * 31.417) * 43758.5453;
+      return value - Math.floor(value);
+    };
+    const points: Array<{ x: number; y: number; scaleX: number; scaleY: number; shade: number; angle: number }> = [];
+    for (let index = 0; index < 180 && points.length < 82; index += 1) {
+      const x = 180 + pseudo(index, 1) * (map.world.w - 360);
+      const y = 180 + pseudo(index, 2) * (map.world.h - 360);
+      const onRoad = map.roads.some((road) => x > road.x - 80 && x < road.x + road.w + 80 && y > road.y - 80 && y < road.y + road.h + 80);
+      const inWater = map.waterZones.some((water) => {
+        const dx = (x - water.x) / water.rx;
+        const dy = (y - water.y) / water.ry;
+        return dx * dx + dy * dy < 1.08;
+      });
+      if (onRoad || inWater) continue;
+      points.push({ x, y, scaleX: 130 + pseudo(index, 3) * 250, scaleY: 90 + pseudo(index, 4) * 190, shade: pseudo(index, 5), angle: pseudo(index, 6) * Math.PI });
+    }
+    if (!points.length) return;
+    const patches = new THREE.InstancedMesh(
+      new THREE.CircleGeometry(1, 14),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.22, depthWrite: false }),
+      points.length
+    );
+    const base = new THREE.Color(color(map.palette.ground, 0x485f50));
+    const rotation = new THREE.Quaternion();
+    points.forEach((point, index) => {
+      rotation.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, point.angle));
+      tempMatrix.compose(new THREE.Vector3(point.x, 0.15, point.y), rotation, new THREE.Vector3(point.scaleX, point.scaleY, 1));
+      patches.setMatrixAt(index, tempMatrix);
+      tempColor.copy(base).offsetHSL(point.shade > 0.5 ? 0.015 : -0.015, point.shade > 0.5 ? 0.04 : -0.03, point.shade > 0.5 ? 0.08 : -0.07);
+      patches.setColorAt(index, tempColor);
+    });
+    patches.instanceMatrix.needsUpdate = true;
+    patches.instanceColor!.needsUpdate = true;
+    patches.receiveShadow = true;
+    this.staticRoot.add(patches);
+  }
+
+  private addRoadMarkings(roads: Rect[]): void {
+    const marks: Array<{ x: number; y: number; vertical: boolean }> = [];
+    roads.forEach((road) => {
+      if (Math.min(road.w, road.h) < 170) return;
+      const horizontal = road.w >= road.h;
+      const length = horizontal ? road.w : road.h;
+      for (let offset = 150; offset < length - 100 && marks.length < 460; offset += 260) {
+        marks.push({
+          x: horizontal ? road.x + offset : road.x + road.w / 2,
+          y: horizontal ? road.y + road.h / 2 : road.y + offset,
+          vertical: !horizontal
+        });
+      }
+    });
+    if (!marks.length) return;
+    const markings = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(104, 1.2, 7),
+      new THREE.MeshBasicMaterial({ color: 0xe0cc79, transparent: true, opacity: 0.5 }),
+      marks.length
+    );
+    const rotation = new THREE.Quaternion();
+    marks.forEach((mark, index) => {
+      rotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), mark.vertical ? Math.PI / 2 : 0);
+      tempMatrix.compose(new THREE.Vector3(mark.x, 1.7, mark.y), rotation, new THREE.Vector3(1, 1, 1));
+      markings.setMatrixAt(index, tempMatrix);
+    });
+    markings.instanceMatrix.needsUpdate = true;
+    this.staticRoot.add(markings);
   }
 
   private addTrees(trees: Array<[number, number, number]>): void {
@@ -364,25 +451,34 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     });
   }
 
-  private buildExtraction(area: Rect & { active?: boolean }): void {
+  private buildExtractions(areas: Array<Rect & { active?: boolean }>): void {
+    disposeTree(this.extraction);
     this.extraction.clear();
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(Math.min(area.w, area.h) * 0.28, Math.min(area.w, area.h) * 0.34, 48),
-      new THREE.MeshBasicMaterial({ color: 0x4b5952, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(area.x + area.w / 2, 4, area.y + area.h / 2);
-    this.extractionRing = ring;
-    this.extraction.add(ring);
+    this.extractionRings.length = 0;
+    areas.forEach((area, index) => {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(Math.min(area.w, area.h) * 0.28, Math.min(area.w, area.h) * 0.34, 48),
+        new THREE.MeshBasicMaterial({ color: 0x4b5952, transparent: true, opacity: 0.5, side: THREE.DoubleSide })
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.rotation.z = index * 0.4;
+      ring.position.set(area.x + area.w / 2, 4, area.y + area.h / 2);
+      this.extractionRings.push(ring);
+      this.extraction.add(ring);
+    });
   }
 
   private updateExtraction(map: RaidMap, time: number): void {
-    if (!this.extractionRing) return;
-    const material = this.extractionRing.material as THREE.MeshBasicMaterial;
-    material.color.set(map.extraction.active ? 0x62f28a : 0x69756f);
-    material.opacity = map.extraction.active ? 0.66 + Math.sin(time * 4) * 0.14 : 0.34;
-    const pulse = 1 + Math.sin(time * 3.5) * 0.055;
-    this.extractionRing.scale.setScalar(pulse);
+    const areas = map.extractions?.length ? map.extractions : [map.extraction];
+    this.extractionRings.forEach((ring, index) => {
+      const active = areas[index]?.active ?? map.extraction.active;
+      const material = ring.material as THREE.MeshBasicMaterial;
+      material.color.set(active ? 0x62f28a : 0x69756f);
+      material.opacity = active ? 0.66 + Math.sin(time * 4 + index) * 0.14 : 0.34;
+      const pulse = 1 + Math.sin(time * 3.5 + index) * 0.055;
+      ring.scale.setScalar(pulse);
+      ring.rotation.z += active ? 0.004 : 0.001;
+    });
   }
 
   private ensureActor(index: number, player: boolean, entity?: PointEntity): THREE.Group {
