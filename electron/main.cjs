@@ -182,7 +182,7 @@ function createWindow() {
           && result.threeRaid?.ready === true
           && result.threeRaid?.active === true
           && result.threeRaid?.cameraMode === 'Perspective 2.5D'
-          && result.threeRaid?.visualMode === 'GrassMud + FauxFloors + AdditiveTracers'
+          && result.threeRaid?.visualMode === 'GrassMud + FauxFloors + AdditiveTracers + MicroDetails'
           && result.threeRaid?.objectCount >= 100
           && result.threeRaid?.frameCount >= 1
           && result.startButton
@@ -191,7 +191,7 @@ function createWindow() {
           && result.debugApi
           && result.raidBalance?.extractionCount === 3
           && result.raidBalance?.extractionsClear === true
-          && result.raidBalance?.details?.normalChests >= 18
+          && result.raidBalance?.details?.normalChests >= 40
           && result.raidBalance?.details?.grass >= 200
           && result.raidBalance?.details?.fences >= 12
           && result.raidBalance?.details?.streetLights >= 20
@@ -201,6 +201,10 @@ function createWindow() {
           && result.warehouse?.capacity === 300
           && result.warehouse?.columns === 15
           && result.warehouse?.expandable === true
+          && result.warehouse?.loadoutSeparated === true
+          && result.warehouse?.middleClickEquip === true
+          && result.warehouse?.persistentCarry === true
+          && result.warehouse?.dragUnload === true
           && result.pauseMenu?.visible === true
           && result.pauseMenu?.buttons === 3
           && result.pauseMenu?.zIndex >= 80

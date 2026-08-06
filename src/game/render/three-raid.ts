@@ -136,7 +136,7 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
   active = false;
   renderer = 'unavailable';
   cameraMode = 'Perspective 2.5D';
-  visualMode = 'GrassMud + FauxFloors + AdditiveTracers';
+  visualMode = 'GrassMud + FauxFloors + AdditiveTracers + MicroDetails';
   revision = THREE.REVISION;
   objectCount = 0;
   frameCount = 0;
@@ -550,6 +550,172 @@ class ThreeRaidRenderer implements DuckThreeRaidBridge {
     this.addGrass(map.grassPatches ?? []);
     this.addFences(map.fences ?? []);
     this.addStreetLights(map.streetLights ?? []);
+    this.addMicroDetails(map);
+  }
+
+  private addMicroDetails(map: RaidMap): void {
+    const seed = Array.from(map.id).reduce((sum, character) => sum + character.charCodeAt(0), 0);
+    const pseudo = (index: number, salt: number): number => {
+      const value = Math.sin((index + 1) * 17.231 + seed * 0.219 + salt * 41.713) * 43758.5453;
+      return value - Math.floor(value);
+    };
+    const buildings = map.buildingSpecs ?? map.buildings ?? [];
+    const inWater = (x: number, y: number): boolean => map.waterZones.some((water) => {
+      const dx = (x - water.x) / water.rx;
+      const dy = (y - water.y) / water.ry;
+      return dx * dx + dy * dy < 1.08;
+    });
+    const inBuilding = (x: number, y: number, margin = 0): boolean => buildings.some((building) => (
+      x > building.x - margin && x < building.x + building.w + margin
+      && y > building.y - margin && y < building.y + building.h + margin
+    ));
+    const onRoad = (x: number, y: number, margin = 0): boolean => map.roads.some((road) => (
+      x > road.x - margin && x < road.x + road.w + margin
+      && y > road.y - margin && y < road.y + road.h + margin
+    ));
+
+    const groundPoints: Array<{ x: number; y: number; size: number; shade: number; angle: number }> = [];
+    for (let index = 0; index < 900 && groundPoints.length < 180; index += 1) {
+      const x = 100 + pseudo(index, 1) * (map.world.w - 200);
+      const y = 100 + pseudo(index, 2) * (map.world.h - 200);
+      if (inWater(x, y) || inBuilding(x, y, 34) || onRoad(x, y, 15)) continue;
+      groundPoints.push({ x, y, size: 5 + pseudo(index, 3) * 11, shade: pseudo(index, 4), angle: pseudo(index, 5) * Math.PI * 2 });
+    }
+    if (groundPoints.length) {
+      const stones = new THREE.InstancedMesh(
+        new THREE.DodecahedronGeometry(1, 0),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1 }),
+        groundPoints.length
+      );
+      const rotation = new THREE.Quaternion();
+      groundPoints.forEach((point, index) => {
+        rotation.setFromEuler(new THREE.Euler(0, point.angle, 0));
+        tempMatrix.compose(new THREE.Vector3(point.x, point.size * 0.32, point.y), rotation, new THREE.Vector3(point.size, point.size * 0.56, point.size * (0.72 + point.shade * 0.35)));
+        stones.setMatrixAt(index, tempMatrix);
+        tempColor.set(point.shade < 0.33 ? 0x626861 : point.shade < 0.67 ? 0x777468 : 0x554e43);
+        stones.setColorAt(index, tempColor);
+      });
+      stones.instanceMatrix.needsUpdate = true;
+      stones.instanceColor!.needsUpdate = true;
+      stones.castShadow = true;
+      stones.receiveShadow = true;
+      this.staticRoot.add(stones);
+    }
+
+    const flowerPoints: Array<{ x: number; y: number; height: number; shade: number }> = [];
+    for (let index = 0; index < 1200 && flowerPoints.length < 210; index += 1) {
+      const x = 100 + pseudo(index, 11) * (map.world.w - 200);
+      const y = 100 + pseudo(index, 12) * (map.world.h - 200);
+      if (inWater(x, y) || inBuilding(x, y, 25) || onRoad(x, y, 30)) continue;
+      flowerPoints.push({ x, y, height: 8 + pseudo(index, 13) * 12, shade: pseudo(index, 14) });
+    }
+    if (flowerPoints.length) {
+      const stems = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(0.55, 0.8, 1, 4),
+        new THREE.MeshStandardMaterial({ color: 0x4f7438, roughness: 1 }),
+        flowerPoints.length
+      );
+      const flowers = new THREE.InstancedMesh(
+        new THREE.OctahedronGeometry(1, 0),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.88 }),
+        flowerPoints.length
+      );
+      flowerPoints.forEach((point, index) => {
+        tempMatrix.compose(new THREE.Vector3(point.x, point.height / 2, point.y), new THREE.Quaternion(), new THREE.Vector3(1, point.height, 1));
+        stems.setMatrixAt(index, tempMatrix);
+        tempMatrix.compose(new THREE.Vector3(point.x, point.height + 1.6, point.y), new THREE.Quaternion(), new THREE.Vector3(2.8, 2.1, 2.8));
+        flowers.setMatrixAt(index, tempMatrix);
+        tempColor.set(point.shade < 0.36 ? 0xf0d45a : point.shade < 0.72 ? 0xe9e6cf : 0xb894cf);
+        flowers.setColorAt(index, tempColor);
+      });
+      stems.instanceMatrix.needsUpdate = true;
+      flowers.instanceMatrix.needsUpdate = true;
+      flowers.instanceColor!.needsUpdate = true;
+      this.staticRoot.add(stems, flowers);
+    }
+
+    const roadMarks: Array<{ x: number; y: number; angle: number; length: number; width: number }> = [];
+    map.roads.forEach((road, roadIndex) => {
+      const horizontal = road.w >= road.h;
+      const count = Math.max(4, Math.min(30, Math.floor((horizontal ? road.w : road.h) / 135)));
+      for (let index = 0; index < count; index += 1) {
+        const sample = roadIndex * 47 + index;
+        roadMarks.push({
+          x: road.x + 20 + pseudo(sample, 21) * Math.max(1, road.w - 40),
+          y: road.y + 20 + pseudo(sample, 22) * Math.max(1, road.h - 40),
+          angle: (horizontal ? 0 : Math.PI / 2) + (pseudo(sample, 23) - 0.5) * 0.42,
+          length: 18 + pseudo(sample, 24) * 48,
+          width: 1.5 + pseudo(sample, 25) * 3.2
+        });
+      }
+    });
+    if (roadMarks.length) {
+      const ruts = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0x342f28, roughness: 1, transparent: true, opacity: 0.62 }),
+        roadMarks.length
+      );
+      const rotation = new THREE.Quaternion();
+      roadMarks.forEach((mark, index) => {
+        rotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), mark.angle);
+        tempMatrix.compose(new THREE.Vector3(mark.x, 1.45, mark.y), rotation, new THREE.Vector3(mark.length, 0.7, mark.width));
+        ruts.setMatrixAt(index, tempMatrix);
+      });
+      ruts.instanceMatrix.needsUpdate = true;
+      ruts.receiveShadow = true;
+      this.staticRoot.add(ruts);
+    }
+
+    const palletSlats: Array<{ x: number; y: number; angle: number; offset: number }> = [];
+    const barrelPoints: Array<{ x: number; y: number; shade: number }> = [];
+    buildings.slice(0, 36).forEach((building, buildingIndex) => {
+      const angle = building.w >= building.h ? 0 : Math.PI / 2;
+      const baseX = building.x + Math.min(58, building.w * 0.22);
+      const baseY = building.y + Math.min(58, building.h * 0.22);
+      for (let slat = -2; slat <= 2; slat += 1) palletSlats.push({ x: baseX, y: baseY, angle, offset: slat * 9 });
+      if (buildingIndex % 2 === 0) barrelPoints.push({
+        x: building.x + building.w - Math.min(42, building.w * 0.2),
+        y: building.y + Math.min(45, building.h * 0.22),
+        shade: pseudo(buildingIndex, 31)
+      });
+    });
+    if (palletSlats.length) {
+      const pallets = new THREE.InstancedMesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({ color: 0x8c6841, roughness: 0.96 }),
+        palletSlats.length
+      );
+      const rotation = new THREE.Quaternion();
+      palletSlats.forEach((slat, index) => {
+        rotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), slat.angle);
+        const x = slat.x + (slat.angle === 0 ? 0 : slat.offset);
+        const y = slat.y + (slat.angle === 0 ? slat.offset : 0);
+        tempMatrix.compose(new THREE.Vector3(x, 3.2, y), rotation, new THREE.Vector3(46, 6, 6));
+        pallets.setMatrixAt(index, tempMatrix);
+      });
+      pallets.instanceMatrix.needsUpdate = true;
+      pallets.castShadow = true;
+      pallets.receiveShadow = true;
+      this.staticRoot.add(pallets);
+    }
+    if (barrelPoints.length) {
+      const barrels = new THREE.InstancedMesh(
+        new THREE.CylinderGeometry(11, 11, 27, 9),
+        new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.68, metalness: 0.28 }),
+        barrelPoints.length
+      );
+      barrelPoints.forEach((barrel, index) => {
+        tempMatrix.compose(new THREE.Vector3(barrel.x, 13.5, barrel.y), new THREE.Quaternion(), new THREE.Vector3(1, 1, 1));
+        barrels.setMatrixAt(index, tempMatrix);
+        tempColor.set(barrel.shade < 0.34 ? 0x526b6d : barrel.shade < 0.67 ? 0x7b5945 : 0x65704d);
+        barrels.setColorAt(index, tempColor);
+      });
+      barrels.instanceMatrix.needsUpdate = true;
+      barrels.instanceColor!.needsUpdate = true;
+      barrels.castShadow = true;
+      barrels.receiveShadow = true;
+      this.staticRoot.add(barrels);
+    }
   }
 
   private addGrass(grass: PointEntity[]): void {
